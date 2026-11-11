@@ -41,6 +41,18 @@
       "sourceFile": "car_upper_left_baked_8x1.png",
       "importedFrom": "sprite-library",
       "importedAt": "2026-11-01"
+    },
+    {
+      "pictureId": "7d3a5b42-b16e-430d-ba81-fdf17118821b",
+      "sourceFile": "agent_car.png",
+      "importedFrom": "blender-rig",
+      "importedAt": "2026-11-11"
+    },
+    {
+      "pictureId": "cd88187e-3d10-485b-9bcc-1a1b8dfc3f4f",
+      "sourceFile": "pickup.png",
+      "importedFrom": "blender-rig",
+      "importedAt": "2026-11-11"
     }
   ],
   "assets": [
@@ -3074,6 +3086,76 @@
         "width": 120,
         "height": 40
       }
+    },
+    {
+      "assetId": "518907b0-8d0d-4f97-8b02-a030477402ca",
+      "name": "Agent Car",
+      "class": "sprite",
+      "pictures": [
+        "7d3a5b42-b16e-430d-ba81-fdf17118821b"
+      ],
+      "frames": [
+        {
+          "frameId": "daf4f3e4-860e-47ef-b00f-4dba0e822ca7",
+          "rect": [
+            0,
+            0,
+            160,
+            320
+          ]
+        }
+      ],
+      "grid": [
+        1,
+        1
+      ],
+      "series": [
+        {
+          "seriesId": "151a7109-0fba-46f3-b933-4d86e23f61a8",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "daf4f3e4-860e-47ef-b00f-4dba0e822ca7"
+            }
+          ],
+          "delayMs": 0
+        }
+      ]
+    },
+    {
+      "assetId": "6d6d021c-8d26-4df1-bb4e-19a2e314b04f",
+      "name": "Pickup",
+      "class": "sprite",
+      "pictures": [
+        "cd88187e-3d10-485b-9bcc-1a1b8dfc3f4f"
+      ],
+      "frames": [
+        {
+          "frameId": "f2f7ccc9-122c-4a3c-9fab-9192dfa96901",
+          "rect": [
+            0,
+            0,
+            174,
+            388
+          ]
+        }
+      ],
+      "grid": [
+        1,
+        1
+      ],
+      "series": [
+        {
+          "seriesId": "8d552fb6-55af-4270-9b82-3c4acc5ce187",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "f2f7ccc9-122c-4a3c-9fab-9192dfa96901"
+            }
+          ],
+          "delayMs": 0
+        }
+      ]
     }
   ],
   "ground": {
