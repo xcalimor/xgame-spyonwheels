@@ -1,0 +1,85 @@
+{
+  "contractVersion": "1.0",
+  "project": {
+    "name": "Roads-001",
+    "createdBy": "human",
+    "cellSize": 256
+  },
+  "pictures": [],
+  "assets": [],
+  "ground": {
+    "origin": [
+      0,
+      0
+    ],
+    "width": 0,
+    "height": 0,
+    "palette": [],
+    "defaultMaterial": -1,
+    "rows": []
+  },
+  "placements": [],
+  "laneRoads": [
+    {
+      "id": "a956cd72-bb48-4376-aa43-5c8b55d939b1",
+      "points": [
+        [
+          -24,
+          -9
+        ],
+        [
+          141,
+          -9
+        ]
+      ],
+      "lanes": 1,
+      "radiusCells": 6,
+      "changes": [
+        {
+          "at": 19.544841766357422,
+          "left": false,
+          "delta": 1
+        },
+        {
+          "at": 79.19573974609375,
+          "left": false,
+          "delta": -1
+        }
+      ]
+    },
+    {
+      "id": "9ccaa89c-aedd-428d-9be3-96a7b3d31c7b",
+      "points": [
+        [
+          -24,
+          -12
+        ],
+        [
+          114,
+          -12
+        ]
+      ],
+      "lanes": 2,
+      "radiusCells": 6,
+      "acrossLanes": 0.5,
+      "changes": [
+        {
+          "at": 19.467510223388672,
+          "left": false,
+          "delta": -1
+        },
+        {
+          "at": 88.48725891113281,
+          "left": true,
+          "delta": 1
+        }
+      ]
+    }
+  ],
+  "themes": [
+    {
+      "themeId": "paved-roads"
+    }
+  ],
+  "extensions": {}
+}

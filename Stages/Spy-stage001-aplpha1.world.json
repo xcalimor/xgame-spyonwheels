@@ -1,0 +1,3053 @@
+{
+  "contractVersion": "1.0",
+  "project": {
+    "name": "Spy-stage001-aplpha1",
+    "createdBy": "human",
+    "cellSize": 256
+  },
+  "pictures": [
+    {
+      "pictureId": "1a5199be-32f2-4dff-98e1-2a504b362322",
+      "sourceFile": "Ground Items.png",
+      "importedFrom": "sprite-library",
+      "importedAt": "2026-10-18"
+    },
+    {
+      "pictureId": "18928e96-0872-4bb0-aae6-c5fd8b164743",
+      "sourceFile": "GroundTexture001_4x4_64x64pixelSized.png",
+      "importedFrom": "sprite-library",
+      "importedAt": "2026-10-18"
+    },
+    {
+      "pictureId": "d161ecba-6be0-4530-a78f-0a143fa2fa00",
+      "sourceFile": "water_deep_upper_left_4x1.png",
+      "importedFrom": "sprite-library",
+      "importedAt": "2026-10-18"
+    },
+    {
+      "pictureId": "184c70f9-4991-4f8e-9cf0-813d93aebc8d",
+      "sourceFile": "water_mid_upper_left_4x1.png",
+      "importedFrom": "sprite-library",
+      "importedAt": "2026-10-18"
+    },
+    {
+      "pictureId": "fe5f1ad1-00fb-476c-aab8-bcdfefdb9a2e",
+      "sourceFile": "water_shallow_upper_left_4x1.png",
+      "importedFrom": "sprite-library",
+      "importedAt": "2026-10-18"
+    }
+  ],
+  "assets": [
+    {
+      "assetId": "96ba856a-3753-4823-aefe-9b4557a6dbe2",
+      "name": "Boulder_001",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "ad79e8dd-22ea-499b-888f-d8ee8aaef809",
+          "rect": [
+            685,
+            361,
+            189,
+            221
+          ]
+        },
+        {
+          "frameId": "43697261-0b73-4df7-aa7b-ff6837a3c716",
+          "rect": [
+            881,
+            373,
+            264,
+            200
+          ]
+        },
+        {
+          "frameId": "65077240-96b5-4350-8f84-2089fa4f1a2b",
+          "rect": [
+            277,
+            421,
+            155,
+            148
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "e9126e79-fbb5-46b8-aabe-20479dc1fc94",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "65077240-96b5-4350-8f84-2089fa4f1a2b"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 7,
+        "y": 121,
+        "width": 138,
+        "height": 18
+      }
+    },
+    {
+      "assetId": "a61c8058-d28b-45c0-b0de-5fb8685449f2",
+      "name": "Boulder_002",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "0df86067-17dd-4bb9-9e73-3d67efc4de57",
+          "rect": [
+            685,
+            361,
+            189,
+            221
+          ]
+        },
+        {
+          "frameId": "7591a897-6f75-4eb2-bd9f-6a276a82a21e",
+          "rect": [
+            881,
+            373,
+            264,
+            200
+          ]
+        },
+        {
+          "frameId": "24eaf666-93a7-48d0-b278-f64c5fa6dc91",
+          "rect": [
+            277,
+            421,
+            155,
+            148
+          ]
+        },
+        {
+          "frameId": "00d56eaa-f7fe-4cac-bafb-c459bd57c0ba",
+          "rect": [
+            139,
+            451,
+            134,
+            108
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "725e6aeb-6959-4d1b-ba40-9605ea92c9cf",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "00d56eaa-f7fe-4cac-bafb-c459bd57c0ba"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 0,
+        "y": 90,
+        "width": 119,
+        "height": 13
+      }
+    },
+    {
+      "assetId": "de8a6d10-ed91-4f46-b461-c6704beda3ca",
+      "name": "Boulder_003",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "8a09e1ae-a820-4cd5-a7af-457b32677730",
+          "rect": [
+            685,
+            361,
+            189,
+            221
+          ]
+        },
+        {
+          "frameId": "df2a3db2-f714-4fbc-91cb-55f8d2d82f04",
+          "rect": [
+            881,
+            373,
+            264,
+            200
+          ]
+        },
+        {
+          "frameId": "68641ebe-8a59-4d04-b3b7-905357151c17",
+          "rect": [
+            277,
+            421,
+            155,
+            148
+          ]
+        },
+        {
+          "frameId": "e9b7eea0-80e9-4f5b-895c-ecbc886e06f4",
+          "rect": [
+            139,
+            451,
+            134,
+            108
+          ]
+        },
+        {
+          "frameId": "ed614865-b083-435b-bf1f-923f32157bbb",
+          "rect": [
+            9,
+            459,
+            128,
+            92
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "1636c11c-db00-4cd2-92f7-bb15a3bb9936",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "ed614865-b083-435b-bf1f-923f32157bbb"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 12,
+        "y": 80,
+        "width": 97,
+        "height": 11
+      }
+    },
+    {
+      "assetId": "18604f7a-ee99-46f0-908d-27ba8ece2ab2",
+      "name": "Mountain_001",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "3d192ad1-7d06-4cb9-ac24-0a788cf238b4",
+          "rect": [
+            436,
+            387,
+            234,
+            186
+          ]
+        },
+        {
+          "frameId": "9c7bba60-2ed6-4d84-8b64-138621b12fb9",
+          "rect": [
+            682,
+            370,
+            192,
+            212
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "c6e4e079-bedf-4ffe-ae98-15829b0f3108",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "3d192ad1-7d06-4cb9-ac24-0a788cf238b4"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 9,
+        "y": 153,
+        "width": 223,
+        "height": 23
+      }
+    },
+    {
+      "assetId": "2075687d-ee0f-41f0-b4fe-d655c87092b2",
+      "name": "Mountain_002",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "336437a1-e233-4a8d-82a7-1275b80d4861",
+          "rect": [
+            685,
+            361,
+            189,
+            221
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "9195cf6a-bec1-4e1b-8884-a099b3ad54ca",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "336437a1-e233-4a8d-82a7-1275b80d4861"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 5,
+        "y": 187,
+        "width": 173,
+        "height": 27
+      }
+    },
+    {
+      "assetId": "1eb853d8-ee53-4201-829c-022a1e2b28a6",
+      "name": "Mountain_003",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "1589a890-b8ec-4f80-8e5e-7b459b14bcfd",
+          "rect": [
+            685,
+            361,
+            189,
+            221
+          ]
+        },
+        {
+          "frameId": "93a4c3fc-df2a-42aa-9356-a38c0b46199a",
+          "rect": [
+            881,
+            373,
+            264,
+            200
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "cf30f62f-6f49-41d8-a598-fb0200c78128",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "93a4c3fc-df2a-42aa-9356-a38c0b46199a"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 10,
+        "y": 175,
+        "width": 245,
+        "height": 25
+      }
+    },
+    {
+      "assetId": "afa2c9ca-b721-428f-b1e6-005af878e307",
+      "name": "Bush-001",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "cbf66006-aafa-4d62-80b4-f401b783c923",
+          "rect": [
+            18,
+            630,
+            84,
+            84
+          ]
+        },
+        {
+          "frameId": "d392c3b3-95b6-4fd9-b2b3-e2abcb33f733",
+          "rect": [
+            110,
+            618,
+            109,
+            102
+          ]
+        },
+        {
+          "frameId": "5bfac83c-2635-4207-8af8-b3a534d28914",
+          "rect": [
+            224,
+            649,
+            84,
+            74
+          ]
+        },
+        {
+          "frameId": "2b39e67d-0b84-4fbe-b465-3bccf4607fc9",
+          "rect": [
+            318,
+            629,
+            115,
+            98
+          ]
+        },
+        {
+          "frameId": "18e3734a-993d-42d7-856b-575ea3ceab78",
+          "rect": [
+            442,
+            571,
+            68,
+            155
+          ]
+        },
+        {
+          "frameId": "ef1d1def-a4df-4abc-aea9-a704783f797f",
+          "rect": [
+            511,
+            656,
+            74,
+            69
+          ]
+        },
+        {
+          "frameId": "a44ec5ac-fca2-4f33-a119-a81a619eb310",
+          "rect": [
+            597,
+            641,
+            88,
+            87
+          ]
+        },
+        {
+          "frameId": "7d2d9aac-d758-46a7-8c26-1773becead42",
+          "rect": [
+            689,
+            601,
+            91,
+            131
+          ]
+        },
+        {
+          "frameId": "958d7f18-f359-44f0-b343-ffe93cac4754",
+          "rect": [
+            789,
+            621,
+            63,
+            102
+          ]
+        },
+        {
+          "frameId": "f2645114-f95c-459a-8b58-3d81e02ba5b7",
+          "rect": [
+            863,
+            603,
+            88,
+            127
+          ]
+        },
+        {
+          "frameId": "92a6667d-4ebe-4cd3-870d-7ff66caa074b",
+          "rect": [
+            954,
+            568,
+            133,
+            165
+          ]
+        },
+        {
+          "frameId": "7d403070-9d38-4762-910b-ad95035fb69c",
+          "rect": [
+            1094,
+            559,
+            112,
+            178
+          ]
+        },
+        {
+          "frameId": "a8b06469-a9e4-48d7-b68e-e1decf3fbf02",
+          "rect": [
+            1211,
+            565,
+            96,
+            170
+          ]
+        },
+        {
+          "frameId": "3a82b136-9f00-43b3-ab31-62ef138ec4bf",
+          "rect": [
+            1322,
+            575,
+            112,
+            160
+          ]
+        },
+        {
+          "frameId": "c24d63ac-d134-4e6b-8d60-d57f5a89b517",
+          "rect": [
+            1450,
+            594,
+            68,
+            132
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "47affa5c-a60d-42ca-9687-4f764e291599",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "cbf66006-aafa-4d62-80b4-f401b783c923"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 36,
+        "y": 71,
+        "width": 40,
+        "height": 10
+      }
+    },
+    {
+      "assetId": "0143386c-6fdb-4feb-b636-b22e5394a091",
+      "name": "Bush-002",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "af339679-c21c-4289-bf07-599117b14e3c",
+          "rect": [
+            18,
+            630,
+            84,
+            84
+          ]
+        },
+        {
+          "frameId": "0005ac89-9dc5-4cb7-86de-8a3c186d602e",
+          "rect": [
+            110,
+            618,
+            109,
+            102
+          ]
+        },
+        {
+          "frameId": "437f7d28-3f66-426d-b91d-620b9e220a8e",
+          "rect": [
+            224,
+            649,
+            84,
+            74
+          ]
+        },
+        {
+          "frameId": "742d095b-4f1f-4a45-8bf5-ecfa10d9dcba",
+          "rect": [
+            318,
+            629,
+            115,
+            98
+          ]
+        },
+        {
+          "frameId": "c4863d0a-2ebf-4c67-81ad-1d37def0a749",
+          "rect": [
+            442,
+            571,
+            68,
+            155
+          ]
+        },
+        {
+          "frameId": "5176acc9-66c0-467c-979f-bb4b4e043b4f",
+          "rect": [
+            511,
+            656,
+            74,
+            69
+          ]
+        },
+        {
+          "frameId": "e6a9fa2f-de05-4ca0-bd49-b932de93ab43",
+          "rect": [
+            597,
+            641,
+            88,
+            87
+          ]
+        },
+        {
+          "frameId": "63a072a5-d767-4c26-b431-51bc55a90e96",
+          "rect": [
+            689,
+            601,
+            91,
+            131
+          ]
+        },
+        {
+          "frameId": "07dad4e4-0404-473e-a73f-0ea2fad70fd2",
+          "rect": [
+            789,
+            621,
+            63,
+            102
+          ]
+        },
+        {
+          "frameId": "42734039-39b4-49a1-b2ef-355a34048ec0",
+          "rect": [
+            863,
+            603,
+            88,
+            127
+          ]
+        },
+        {
+          "frameId": "41f2282d-ad8c-4f03-9986-fab5e8222759",
+          "rect": [
+            954,
+            568,
+            133,
+            165
+          ]
+        },
+        {
+          "frameId": "a093dfdc-bace-4288-a5a9-6df885c58f02",
+          "rect": [
+            1094,
+            559,
+            112,
+            178
+          ]
+        },
+        {
+          "frameId": "e9a44b3e-a7f1-41ab-8d98-98b38ff0d10f",
+          "rect": [
+            1211,
+            565,
+            96,
+            170
+          ]
+        },
+        {
+          "frameId": "f60e0b37-9e6a-48cc-a7b7-12cae56ad7ef",
+          "rect": [
+            1322,
+            575,
+            112,
+            160
+          ]
+        },
+        {
+          "frameId": "a5fef48d-4e66-4f2f-913e-2336dc960acc",
+          "rect": [
+            1450,
+            594,
+            68,
+            132
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "a0b8b198-717b-4081-a8ce-2e4cdfb1fc6b",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "0005ac89-9dc5-4cb7-86de-8a3c186d602e"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 27,
+        "y": 87,
+        "width": 57,
+        "height": 12
+      }
+    },
+    {
+      "assetId": "6395c4a1-d01b-43d2-a655-c7448b1318a8",
+      "name": "Bush-003",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "336f11f1-5736-4db7-b316-929c219ca933",
+          "rect": [
+            18,
+            630,
+            84,
+            84
+          ]
+        },
+        {
+          "frameId": "29cc8c93-49b1-429e-9386-c07f4ba40378",
+          "rect": [
+            110,
+            618,
+            109,
+            102
+          ]
+        },
+        {
+          "frameId": "91350977-1809-41a6-890e-bda593a44443",
+          "rect": [
+            224,
+            649,
+            84,
+            74
+          ]
+        },
+        {
+          "frameId": "283bfafb-c553-4e36-ac8b-67f384aba2a9",
+          "rect": [
+            318,
+            629,
+            115,
+            98
+          ]
+        },
+        {
+          "frameId": "46061b90-d48f-4129-b8a7-983399b6a4c3",
+          "rect": [
+            442,
+            571,
+            68,
+            155
+          ]
+        },
+        {
+          "frameId": "bdcdeefc-1155-46e9-8a97-1b9824efd0fb",
+          "rect": [
+            511,
+            656,
+            74,
+            69
+          ]
+        },
+        {
+          "frameId": "2e800df7-0550-4ac9-8d33-8e2c72b90514",
+          "rect": [
+            597,
+            641,
+            88,
+            87
+          ]
+        },
+        {
+          "frameId": "58e544a0-2a61-4533-9dfc-6669b6b2f5a7",
+          "rect": [
+            689,
+            601,
+            91,
+            131
+          ]
+        },
+        {
+          "frameId": "7df713a5-d074-42b3-86bf-f06030790e0c",
+          "rect": [
+            789,
+            621,
+            63,
+            102
+          ]
+        },
+        {
+          "frameId": "e5dbcd41-f997-4023-85da-1e23d4c685fe",
+          "rect": [
+            863,
+            603,
+            88,
+            127
+          ]
+        },
+        {
+          "frameId": "2f65037e-b04b-4c09-9796-843f24fd63e9",
+          "rect": [
+            954,
+            568,
+            133,
+            165
+          ]
+        },
+        {
+          "frameId": "52aee939-7e08-4511-af83-8c61e0f669a2",
+          "rect": [
+            1094,
+            559,
+            112,
+            178
+          ]
+        },
+        {
+          "frameId": "f194b71f-67a5-443f-bbf8-a09efc36c83e",
+          "rect": [
+            1211,
+            565,
+            96,
+            170
+          ]
+        },
+        {
+          "frameId": "3f0e234e-b1db-4c9c-8ede-e707b454e744",
+          "rect": [
+            1322,
+            575,
+            112,
+            160
+          ]
+        },
+        {
+          "frameId": "e9cb2c30-ce77-4820-a175-56b056dbfd13",
+          "rect": [
+            1450,
+            594,
+            68,
+            132
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "befdc33b-a5dd-4350-88dc-276a92c6a464",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "91350977-1809-41a6-890e-bda593a44443"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 13,
+        "y": 62,
+        "width": 56,
+        "height": 9
+      }
+    },
+    {
+      "assetId": "a6f11170-cd58-4430-864d-bea3c40a786a",
+      "name": "Bush-004",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "d2085001-f49a-4768-a001-e151342a1b1a",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "4de5ccda-5fea-46db-a7de-b69b5a1a0626",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "d407d843-dc35-4a32-9458-b68beaaf9f89",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "5fbd3446-f987-42b4-be52-f254c847021d",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "d2085001-f49a-4768-a001-e151342a1b1a"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 3,
+        "y": 89,
+        "width": 103,
+        "height": 13
+      }
+    },
+    {
+      "assetId": "bf5236cc-a38e-4830-941d-94fd4c49cd66",
+      "name": "Cactus-001",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "041e9a7e-f350-4902-b338-1b7f22156825",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "8881a093-ea00-4799-986e-812738ae7180",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "8805a720-bddd-4211-9ce1-e537517151c1",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "8f35a2fb-1aff-421d-aea2-f1b9b2e78e7f",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "8881a093-ea00-4799-986e-812738ae7180"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 4,
+        "y": 134,
+        "width": 63,
+        "height": 19
+      }
+    },
+    {
+      "assetId": "693f6633-3a7b-4847-a237-db49c18b8ef1",
+      "name": "Bush-005",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "4f31ff37-87e1-4186-b01b-e3d4ea509eb8",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "e0a9c5d8-c264-44c4-9e97-607adb2f9fd8",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "8e3beeef-03bf-4e15-afc9-a876e3e94c17",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "72b66531-3403-411f-a823-a6b358a36439",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "8e3beeef-03bf-4e15-afc9-a876e3e94c17"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 2,
+        "y": 54,
+        "width": 62,
+        "height": 7
+      }
+    },
+    {
+      "assetId": "f6a2ad9f-3a61-4d72-8d99-cabcf2e87e5d",
+      "name": "Bush-006",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "418f573a-0992-4538-ae7f-1a79cd809207",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "eb7a37fa-787c-448c-849c-e0e4a57cc43f",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "580b4e77-535e-43e7-9849-e5fb0b725e82",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "5884f04a-5c15-4d5e-a880-b00b5e56d47e",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "acd24f0e-1b8e-4b75-a26d-218cb40ff321",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "5884f04a-5c15-4d5e-a880-b00b5e56d47e"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 9,
+        "y": 69,
+        "width": 62,
+        "height": 10
+      }
+    },
+    {
+      "assetId": "11b193d6-55a5-4999-bea1-66ba3845f161",
+      "name": "Tree-001",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "57465931-96fb-4993-bbfa-83f2a9df2bc1",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "ea00ffb6-db6e-4ea6-8498-8e0a70fdafec",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "d05b862b-17ba-4b1b-abfb-38bcaf8487c8",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "4af17c97-573c-4f99-930a-08d924e2e152",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "cdca2aa8-3425-47d9-8f8d-8e76c483147c",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "e0732ff8-73a2-4fe2-9320-6e42ef82b94d",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "297f98cb-eef7-48d7-a279-ccd08385c146",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "0881c180-5a85-496d-8dc9-e82a5e30cf62",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "eb45e15f-b44b-4b92-b1fa-02c3ce15fd37",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "8ea0ef5b-1141-479a-a347-db5445abea09",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "c2dfe324-4a1d-4f95-97ab-2c762313081a",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "752cf336-9595-45ee-8b10-e53eefe79839",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "cdca2aa8-3425-47d9-8f8d-8e76c483147c"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 1,
+        "y": 115,
+        "width": 84,
+        "height": 16
+      }
+    },
+    {
+      "assetId": "d83d3171-ca1d-4003-b118-fadc87df56d2",
+      "name": "Tree-002",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "a3c51864-bbe2-45cf-a3eb-8dc9a10156a0",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "1308937e-db72-4e9a-9827-4af2c6ceae57",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "ac6b3432-faff-47e0-b2f8-88f40db37301",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "9fcee631-44a3-4eec-97fd-86470d2629c3",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "207c2838-02bd-434b-ab8f-ab48e1d70221",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "51a7b74d-15cb-451f-ac8a-7a8bfe1664ad",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "675d7f4b-152d-4eb5-9ce2-e4098c7c80eb",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "1a684560-1737-427f-8c7c-16315b451829",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "ed01e006-eaca-4c4e-978e-f7fb230e43c7",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "bce94c86-56de-4b0b-ba44-a0635824cf4b",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "1de8c429-b9c4-46db-8c99-ab2aa8fb5c39",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "4bd48414-27f3-42b9-b512-c6086601fbf0",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "51a7b74d-15cb-451f-ac8a-7a8bfe1664ad"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 17,
+        "y": 88,
+        "width": 32,
+        "height": 13
+      }
+    },
+    {
+      "assetId": "6358a50d-3d9b-42d2-934b-bea20cb74ce4",
+      "name": "Tree-003",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "f2334cbd-fb68-42a5-bfb1-65f9fb14aab5",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "bd93cdee-fb2f-4a62-b093-8f2791696a20",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "126d9358-dfda-4dce-b219-1b89d18276e6",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "15ba0058-8a2d-468f-b2d5-46bf207685c7",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "7ccccc1d-3f96-4300-8123-7dfc2c6f40ad",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "2a83e760-3917-4f36-812c-d53647eb4c3c",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "3cd878ca-8478-4b46-888a-d6cf489917b7",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "7d605289-d380-4dde-8f3b-132bf440af52",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "96f1e684-f724-44ee-b56e-99cda442cba1",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "0bfb6fc2-776e-498b-b776-f0c2f033a10b",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "e85ba6c7-14ad-4fee-a095-b7e5686ec055",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "91035f13-481a-4220-8d8d-e39ba0c57b83",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "3cd878ca-8478-4b46-888a-d6cf489917b7"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 22,
+        "y": 106,
+        "width": 40,
+        "height": 15
+      }
+    },
+    {
+      "assetId": "af654417-dfea-483b-8a8f-a365ac5d39d6",
+      "name": "Tree-004",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "a3370c29-4e75-4e46-8218-404491e11cd7",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "6569514a-4fc2-4371-830c-8ad90029fa2d",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "a4cff18f-6826-43b9-914b-228d5e9ed790",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "a93c098e-36a8-49c2-aaf9-533a883b81c9",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "823511ba-66d7-4aaf-a043-90c1cbc3de09",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "8f79bb16-f12c-487b-8a58-3091479fe6d3",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "952f5383-acf5-4aa3-a422-4e61e45b9b89",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "fdbf7d5a-fd03-4a08-b597-f3b3bb3dc11d",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "91c4e286-23ff-44cf-aaca-d355402fca57",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "d21cf5d9-c20f-418e-b5b0-dc5dfb912f13",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "20a33460-3ea9-4eed-a09f-7c06baf973e5",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "b3f050f6-ac5a-4f83-b553-4a99af133f00",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "fdbf7d5a-fd03-4a08-b597-f3b3bb3dc11d"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 34,
+        "y": 142,
+        "width": 56,
+        "height": 20
+      }
+    },
+    {
+      "assetId": "c81e0aab-d7b7-4f04-8c95-a9d46fdd072e",
+      "name": "Tree-005",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "ef9328f6-3f51-4c9b-bf71-40c859c70d08",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "e9fc00c9-29a5-44de-b452-15a67fefbdf4",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "ad01e241-5ec4-4495-9fa9-b7925bf5ac09",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "f83e23a7-03dd-444c-a073-7633b3589541",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "39dc6f30-e86d-499b-a930-2c15b2279d4e",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "d094510e-b0b5-4dec-9aee-2b4a453fd293",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "1bbc2479-a8f6-4f5d-928a-600638250cae",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "19377908-8ebb-4f55-8b7f-21765cceaca2",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "aea63d7c-f094-4b51-a721-bfa071cb7aec",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "d7024788-83f4-48c3-ae15-b09eea25ede4",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "a7a48295-94d1-4663-ab79-f5978d04cfd9",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "9bad942d-6d4a-4a93-803a-baae7fb9cc1f",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "aea63d7c-f094-4b51-a721-bfa071cb7aec"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 10,
+        "y": 152,
+        "width": 79,
+        "height": 22
+      }
+    },
+    {
+      "assetId": "46b8be0b-d1e8-4892-b260-2d14dad7d2f8",
+      "name": "Tree-006",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "b11929e1-5b54-4ae1-a300-aa24cb663929",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "d8d7d872-af9e-4500-88bd-5fc53346ddf3",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "03bfb426-cd28-4c57-8a05-319b03b59d76",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "14e09683-100e-439b-a7ec-7fb943c4d283",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "77d0597f-5471-4a8e-ab50-baff7a84b307",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "89f057b9-458f-4fd8-b8a0-43c745a05eea",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "896d2e3f-cd5d-492a-8553-165e161cf7d0",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "895bb8f0-69f4-4767-8774-b80a3c40b88d",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "b58b7dae-8388-4086-b746-a08b894681b1",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "9973b1e8-66cd-4e21-a109-fc4a27c66f70",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "104ea67d-5d0a-458b-9a62-09ce4938f861",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "b9844b70-fc8b-4e38-a2ed-e95899a00a95",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "9973b1e8-66cd-4e21-a109-fc4a27c66f70"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 6,
+        "y": 145,
+        "width": 76,
+        "height": 21
+      }
+    },
+    {
+      "assetId": "827b3d35-a09b-470e-9dca-fae2ca6c0ffc",
+      "name": "Tree-007",
+      "class": "sprite",
+      "pictures": [
+        "1a5199be-32f2-4dff-98e1-2a504b362322"
+      ],
+      "frames": [
+        {
+          "frameId": "d7c0e38b-c1bc-4b2a-b002-98ad27f33d2b",
+          "rect": [
+            320,
+            625,
+            114,
+            111
+          ]
+        },
+        {
+          "frameId": "bd1a681a-3c44-4046-89ee-83a6dcdbf6bb",
+          "rect": [
+            443,
+            570,
+            67,
+            155
+          ]
+        },
+        {
+          "frameId": "afcc59c9-e757-44f6-9591-e432d840e093",
+          "rect": [
+            511,
+            661,
+            77,
+            61
+          ]
+        },
+        {
+          "frameId": "801c6497-5c59-4e81-bf95-e1669574d54f",
+          "rect": [
+            603,
+            643,
+            76,
+            83
+          ]
+        },
+        {
+          "frameId": "74760b72-b1d8-4673-8db7-0ee5ff56246d",
+          "rect": [
+            689,
+            597,
+            89,
+            131
+          ]
+        },
+        {
+          "frameId": "f69b2298-92d2-4025-aaa0-264b770df35e",
+          "rect": [
+            787,
+            619,
+            65,
+            107
+          ]
+        },
+        {
+          "frameId": "e4c4ce7b-af6c-4e09-bf0d-3638050f96be",
+          "rect": [
+            863,
+            602,
+            86,
+            124
+          ]
+        },
+        {
+          "frameId": "5cc29ce6-6499-429e-8e5e-b457c6f4e1a4",
+          "rect": [
+            958,
+            569,
+            128,
+            162
+          ]
+        },
+        {
+          "frameId": "73888a9e-fb1b-430c-927a-4373653a46f3",
+          "rect": [
+            1097,
+            560,
+            108,
+            178
+          ]
+        },
+        {
+          "frameId": "6e835e45-9afc-4d55-a7e8-bb39a734d2c5",
+          "rect": [
+            1214,
+            568,
+            92,
+            168
+          ]
+        },
+        {
+          "frameId": "e2b0bec0-0650-4995-a79b-330d46fa4d30",
+          "rect": [
+            1455,
+            590,
+            66,
+            140
+          ]
+        }
+      ],
+      "series": [
+        {
+          "seriesId": "af576b90-3d80-4172-ae87-4befdf3c1000",
+          "name": "series-1",
+          "frames": [
+            {
+              "frame": "e2b0bec0-0650-4995-a79b-330d46fa4d30"
+            }
+          ],
+          "delayMs": 0
+        }
+      ],
+      "footprint": {
+        "x": 10,
+        "y": 119,
+        "width": 44,
+        "height": 17
+      }
+    },
+    {
+      "assetId": "4695e116-f635-4f13-9e9f-4c49af6da0fb",
+      "name": "Ground(0)",
+      "class": "ground",
+      "pictures": [
+        "18928e96-0872-4bb0-aae6-c5fd8b164743"
+      ],
+      "frames": [
+        {
+          "frameId": "91cd4470-40c0-416b-93d5-f94b17c8b1b5",
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "03ddf465-df4e-4bb2-bd3a-ac96447a46e5",
+          "rect": [
+            256,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "7402ad28-3cfe-40e5-b2a4-61cf99d6d406",
+          "rect": [
+            512,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "e41947ec-ba3e-480d-812f-75c290fda75e",
+          "rect": [
+            768,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "fe17762b-6053-4d77-9432-98bdd410d6cf",
+          "rect": [
+            0,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "76815db1-0e50-49b9-83ce-9172963a1af8",
+          "rect": [
+            256,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "a02032ba-d77c-4b7b-825a-1e3c57ec206d",
+          "rect": [
+            512,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "4f9095a0-8e8f-4761-bc1e-825f8e1dc7a1",
+          "rect": [
+            768,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "cd9dd8ee-4913-4cc9-8265-ca370c5e1d0b",
+          "rect": [
+            0,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "d1056085-35a8-47a2-9ce3-59566c970598",
+          "rect": [
+            256,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "f2d2a631-8d58-4f37-bec1-358c39fa9a70",
+          "rect": [
+            512,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "d6d28f66-a687-49db-9316-419f19349f5c",
+          "rect": [
+            768,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "bf66ccab-60d0-44e2-888c-e4ebb2447ce7",
+          "rect": [
+            0,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "cb321816-c099-4e27-bee9-347011d96e91",
+          "rect": [
+            256,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "d1260e36-f1de-4c06-8bc2-543e03fb09f3",
+          "rect": [
+            512,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "f48b6827-728e-4221-8f67-16571d60463f",
+          "rect": [
+            768,
+            768,
+            256,
+            256
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "series": [
+        {
+          "seriesId": "7ee574a9-4d82-4d5b-bead-da63f0724d85",
+          "name": "frame-0",
+          "frames": [
+            {
+              "frame": "91cd4470-40c0-416b-93d5-f94b17c8b1b5"
+            }
+          ],
+          "delayMs": 0
+        }
+      ]
+    },
+    {
+      "assetId": "d896f02e-a3c6-4a21-89df-db25d2ec75e3",
+      "name": "Ground(1)",
+      "class": "ground",
+      "pictures": [
+        "18928e96-0872-4bb0-aae6-c5fd8b164743"
+      ],
+      "frames": [
+        {
+          "frameId": "919b4ab1-1854-474e-acc8-3c6dbc6b364e",
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "99ad5d41-63ff-4921-8a47-bd9fe1b026eb",
+          "rect": [
+            256,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "47eeda28-3c01-4b44-887b-069305712629",
+          "rect": [
+            512,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "2e9b64fa-8142-4d4e-a34b-c97ca9ef1eec",
+          "rect": [
+            768,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "038f52f1-d98e-4a09-9663-4bd493f479b6",
+          "rect": [
+            0,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "deef60f2-e85f-4ceb-9b8d-35c84a4a12e3",
+          "rect": [
+            256,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "9d45c18d-9b33-48c2-a2b9-fa7f1071749a",
+          "rect": [
+            512,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "3e7e3014-83c7-48cf-bfca-f3cd5b50c9a0",
+          "rect": [
+            768,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "c7e72281-8fbe-46c9-8403-82cdf48dfc71",
+          "rect": [
+            0,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "cf3d9a62-7448-48b1-a024-ef46bfc297fc",
+          "rect": [
+            256,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "edd36415-9ea8-4bb7-988a-63ace545b433",
+          "rect": [
+            512,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "ed6692a1-fa93-4905-96c0-320a6aab4caa",
+          "rect": [
+            768,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "d13b259e-0a46-44ab-8fbe-73ccba274d04",
+          "rect": [
+            0,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "e71ae701-b0f7-4789-a077-8f18385e84eb",
+          "rect": [
+            256,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "9c9d7026-a17b-43fa-b932-6ed11e66dd00",
+          "rect": [
+            512,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "3bea9428-ad08-4dc5-ae92-4951f529543a",
+          "rect": [
+            768,
+            768,
+            256,
+            256
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "series": [
+        {
+          "seriesId": "fecb2014-1b36-4b15-8a1a-5eae217c3c33",
+          "name": "frame-1",
+          "frames": [
+            {
+              "frame": "99ad5d41-63ff-4921-8a47-bd9fe1b026eb"
+            }
+          ],
+          "delayMs": 0
+        }
+      ]
+    },
+    {
+      "assetId": "bba62ac5-17de-43ec-9fa4-bcfd6941ac61",
+      "name": "Ground(2)",
+      "class": "ground",
+      "pictures": [
+        "18928e96-0872-4bb0-aae6-c5fd8b164743"
+      ],
+      "frames": [
+        {
+          "frameId": "d1017624-b92b-4c6e-9c43-824afc611e62",
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "1cfc2677-c91b-4c79-9901-64e398b127c7",
+          "rect": [
+            256,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "7aa626fd-83e8-47fa-8a96-322e96232e06",
+          "rect": [
+            512,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "17b13e27-e6fb-43ee-af3a-f8271ddf29a5",
+          "rect": [
+            768,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "b29df609-cb14-424d-b7f2-616497db606d",
+          "rect": [
+            0,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "722d5f76-90c6-4131-a813-3c1ec9ff381d",
+          "rect": [
+            256,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "8ee5b573-9e82-4c6d-8282-6adedaa2c337",
+          "rect": [
+            512,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "ddd79b86-ba28-4484-8558-e33b9e346361",
+          "rect": [
+            768,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "6ad1f6e7-52f2-43c0-89a0-aaa8e4d07241",
+          "rect": [
+            0,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "481ede17-cdb1-4438-a958-58d368498c70",
+          "rect": [
+            256,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "67232fd3-1fc1-4746-a777-c230d2d44ea4",
+          "rect": [
+            512,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "ed4e514c-9d49-41fc-979a-623c7430aef5",
+          "rect": [
+            768,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "fb59f5e8-d5fa-4bda-9ee7-a4057a875b36",
+          "rect": [
+            0,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "d68257d9-e6d7-4269-82d4-e29111ed672b",
+          "rect": [
+            256,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "5265e8a0-8713-42a6-a2cb-da58cfd95d9a",
+          "rect": [
+            512,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "7f62ba80-7802-416c-adb4-54b60d2ec536",
+          "rect": [
+            768,
+            768,
+            256,
+            256
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "series": [
+        {
+          "seriesId": "05892dd4-9901-4dfa-aa65-1a6221863a4e",
+          "name": "frame-2",
+          "frames": [
+            {
+              "frame": "7aa626fd-83e8-47fa-8a96-322e96232e06"
+            }
+          ],
+          "delayMs": 0
+        }
+      ]
+    },
+    {
+      "assetId": "535fa50b-8326-4d05-9131-7220839fc17b",
+      "name": "Ground(6)",
+      "class": "ground",
+      "pictures": [
+        "18928e96-0872-4bb0-aae6-c5fd8b164743"
+      ],
+      "frames": [
+        {
+          "frameId": "62a1b91b-8c95-4943-8987-b0ff1ef80bc8",
+          "rect": [
+            0,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "236340a7-9233-4eb8-98b7-02e290c954b6",
+          "rect": [
+            256,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "e8fbcd66-4407-4e77-bdcf-c3f7e3b5feff",
+          "rect": [
+            512,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "1fb6df3f-7f16-4fe5-b0af-24b250215341",
+          "rect": [
+            768,
+            0,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "fb20aa27-2cad-49e6-ad4b-2ce002966800",
+          "rect": [
+            0,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "87cabb43-7abf-4bd1-9d72-a3c2ff5cadd3",
+          "rect": [
+            256,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "da6f8179-1da3-47da-a870-ae41c60e86d3",
+          "rect": [
+            512,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "de68d53e-5f4b-4c15-a119-6c755043943d",
+          "rect": [
+            768,
+            256,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "4b8ac0e5-a20a-44af-a8dd-e0c6404b4234",
+          "rect": [
+            0,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "664f2d0a-e70e-46a4-ad80-626642debded",
+          "rect": [
+            256,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "be6631c1-8994-473f-9db7-8c1b9e31c9ad",
+          "rect": [
+            512,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "5e2ab10c-31a4-415f-a341-0797bc996cf7",
+          "rect": [
+            768,
+            512,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "6bed3685-4578-4758-9403-184aedaf675e",
+          "rect": [
+            0,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "cb92f7e9-2708-42f2-96e6-e2e447cbfe70",
+          "rect": [
+            256,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "9cc4845a-f1cd-48d3-89fa-10fb31df860d",
+          "rect": [
+            512,
+            768,
+            256,
+            256
+          ]
+        },
+        {
+          "frameId": "b1018f19-aed4-4c30-8365-c7754383d444",
+          "rect": [
+            768,
+            768,
+            256,
+            256
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        4
+      ],
+      "series": [
+        {
+          "seriesId": "131197cb-4c36-4809-a5f3-7371c789d8a9",
+          "name": "frame-6",
+          "frames": [
+            {
+              "frame": "da6f8179-1da3-47da-a870-ae41c60e86d3"
+            }
+          ],
+          "delayMs": 0
+        }
+      ]
+    },
+    {
+      "assetId": "daa19970-d71a-4c1c-b5fc-c570bbf2ebe6",
+      "name": "Water_Deep",
+      "class": "ground",
+      "pictures": [
+        "d161ecba-6be0-4530-a78f-0a143fa2fa00"
+      ],
+      "frames": [
+        {
+          "frameId": "ec860e8c-0f61-4cdb-b2b4-c35faf63ad73",
+          "rect": [
+            0,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "34099614-82c2-4e23-b11a-a0135fa7196c",
+          "rect": [
+            1024,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "c4bd757f-b08e-4d30-8db8-1b13427a3b89",
+          "rect": [
+            2048,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "8e313143-0a92-48bf-8420-188d9412ded8",
+          "rect": [
+            3072,
+            0,
+            1024,
+            1024
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        1
+      ],
+      "series": [
+        {
+          "seriesId": "5103d261-2298-4e62-8ed1-4159cf6b0451",
+          "name": "surface",
+          "frames": [
+            {
+              "frame": "ec860e8c-0f61-4cdb-b2b4-c35faf63ad73"
+            },
+            {
+              "frame": "34099614-82c2-4e23-b11a-a0135fa7196c"
+            },
+            {
+              "frame": "c4bd757f-b08e-4d30-8db8-1b13427a3b89"
+            },
+            {
+              "frame": "8e313143-0a92-48bf-8420-188d9412ded8"
+            }
+          ],
+          "delayMs": 200
+        }
+      ],
+      "substance": "water"
+    },
+    {
+      "assetId": "a9ac3dde-ce04-488a-9e37-38b4eea4092e",
+      "name": "Water_Mid_Upper(3)",
+      "class": "ground",
+      "pictures": [
+        "184c70f9-4991-4f8e-9cf0-813d93aebc8d"
+      ],
+      "frames": [
+        {
+          "frameId": "d65068cc-def0-4d6b-9ba5-59d90a505ef4",
+          "rect": [
+            0,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "b86770a2-5597-44fd-9b90-1a74e42c2845",
+          "rect": [
+            1024,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "e8bcc25d-ba85-4748-a891-f7799482ed50",
+          "rect": [
+            2048,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "cec51989-94b4-44ab-b8de-7ab01cf6ec7c",
+          "rect": [
+            3072,
+            0,
+            1024,
+            1024
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        1
+      ],
+      "series": [
+        {
+          "seriesId": "66339ce4-d508-46d6-abb2-9a246758d758",
+          "name": "surface",
+          "frames": [
+            {
+              "frame": "d65068cc-def0-4d6b-9ba5-59d90a505ef4"
+            },
+            {
+              "frame": "b86770a2-5597-44fd-9b90-1a74e42c2845"
+            },
+            {
+              "frame": "e8bcc25d-ba85-4748-a891-f7799482ed50"
+            },
+            {
+              "frame": "cec51989-94b4-44ab-b8de-7ab01cf6ec7c"
+            }
+          ],
+          "delayMs": 200
+        }
+      ],
+      "substance": "water"
+    },
+    {
+      "assetId": "8196e5e7-a8da-4206-862e-17c31bd1154c",
+      "name": "Water_Shallow_UpperL(3)",
+      "class": "ground",
+      "pictures": [
+        "fe5f1ad1-00fb-476c-aab8-bcdfefdb9a2e"
+      ],
+      "frames": [
+        {
+          "frameId": "4e10362f-b391-4e22-81c0-c8315018307a",
+          "rect": [
+            0,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "3bd2836c-6553-4886-a3a2-b25581417b65",
+          "rect": [
+            1024,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "41764f19-ec1c-4c24-bd8f-852258585697",
+          "rect": [
+            2048,
+            0,
+            1024,
+            1024
+          ]
+        },
+        {
+          "frameId": "d68d4eb0-b918-46b9-b15b-1977e2bf3b52",
+          "rect": [
+            3072,
+            0,
+            1024,
+            1024
+          ]
+        }
+      ],
+      "grid": [
+        4,
+        1
+      ],
+      "series": [
+        {
+          "seriesId": "7f7b1c3f-2ba9-430a-b1d0-f4d7eca4db37",
+          "name": "surface",
+          "frames": [
+            {
+              "frame": "4e10362f-b391-4e22-81c0-c8315018307a"
+            },
+            {
+              "frame": "3bd2836c-6553-4886-a3a2-b25581417b65"
+            },
+            {
+              "frame": "41764f19-ec1c-4c24-bd8f-852258585697"
+            },
+            {
+              "frame": "d68d4eb0-b918-46b9-b15b-1977e2bf3b52"
+            }
+          ],
+          "delayMs": 300
+        }
+      ],
+      "substance": "water"
+    }
+  ],
+  "ground": {
+    "origin": [
+      -6,
+      -3
+    ],
+    "width": 8,
+    "height": 7,
+    "palette": [
+      "4695e116-f635-4f13-9e9f-4c49af6da0fb",
+      "d896f02e-a3c6-4a21-89df-db25d2ec75e3",
+      "bba62ac5-17de-43ec-9fa4-bcfd6941ac61",
+      "535fa50b-8326-4d05-9131-7220839fc17b",
+      "daa19970-d71a-4c1c-b5fc-c570bbf2ebe6",
+      "a9ac3dde-ce04-488a-9e37-38b4eea4092e",
+      "8196e5e7-a8da-4206-862e-17c31bd1154c"
+    ],
+    "defaultMaterial": -1,
+    "rows": [
+      [
+        -1,
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        0,
+        -1
+      ],
+      [
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        2,
+        2,
+        -1
+      ],
+      [
+        -1,
+        -1,
+        0,
+        0,
+        2,
+        2,
+        2,
+        1
+      ],
+      [
+        4,
+        4,
+        5,
+        1,
+        1,
+        2,
+        2,
+        1
+      ],
+      [
+        -1,
+        4,
+        5,
+        5,
+        1,
+        1,
+        1,
+        1
+      ],
+      [
+        -1,
+        4,
+        4,
+        5,
+        5,
+        5,
+        5,
+        5
+      ],
+      [
+        -1,
+        -1,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    ]
+  },
+  "placements": [],
+  "laneRoads": [
+    {
+      "id": "eeb926dd-577b-4f56-bbcf-fda3e35b935f",
+      "points": [
+        [
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -3
+        ]
+      ],
+      "lanes": 2,
+      "radiusCells": 6,
+      "joinsInto": "cbc08ebb-0aef-4189-af31-711b6f016ed1"
+    },
+    {
+      "id": "cbc08ebb-0aef-4189-af31-711b6f016ed1",
+      "points": [
+        [
+          -1,
+          -3
+        ],
+        [
+          -1,
+          -7
+        ]
+      ],
+      "lanes": 1,
+      "radiusCells": 6,
+      "acrossLanes": -0.5,
+      "peeledFrom": "eeb926dd-577b-4f56-bbcf-fda3e35b935f",
+      "back": 1
+    },
+    {
+      "id": "1b7ca689-7d14-4a02-805f-e40c1612c2fd",
+      "points": [
+        [
+          -1,
+          -3
+        ],
+        [
+          -1,
+          -6
+        ],
+        [
+          4,
+          -11
+        ],
+        [
+          13,
+          -11
+        ]
+      ],
+      "lanes": 1,
+      "radiusCells": 6,
+      "acrossLanes": 0.5,
+      "peeledFrom": "eeb926dd-577b-4f56-bbcf-fda3e35b935f",
+      "back": 1
+    },
+    {
+      "id": "806bd6bd-bf06-4989-9e33-1c1f4cadee7f",
+      "points": [
+        [
+          -1,
+          -7
+        ],
+        [
+          -1,
+          -12
+        ],
+        [
+          0,
+          -15
+        ],
+        [
+          6,
+          -17
+        ],
+        [
+          13,
+          -17
+        ]
+      ],
+      "lanes": 1,
+      "radiusCells": 6,
+      "acrossLanes": -0.5
+    }
+  ],
+  "themes": [
+    {
+      "themeId": "paved-roads"
+    }
+  ],
+  "extensions": {}
+}
