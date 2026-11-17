@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RollForward>Major</RollForward>
+    <Nullable>enable</Nullable>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <RootNamespace>SpyOnWheels</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.2.1105" />
+    <!-- Pinned: a new module version is taken on purpose, never by accident (WI-015). -->
+    <PackageReference Include="XGame.WorldData" Version="[0.2.0]" />
+    <PackageReference Include="XGame.TerrainRenderer" Version="[0.2.0]" />
+    <PackageReference Include="XGame.WorldScene" Version="[0.2.0]" />
+  </ItemGroup>
+</Project>
