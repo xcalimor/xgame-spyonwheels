@@ -45,9 +45,14 @@ public sealed class Car
     /// <summary>The unit vector the car faces, in world px axes (y down).</summary>
     public Vector2 Forward => new(MathF.Sin(Heading), -MathF.Cos(Heading));
 
-    public void Step(Drive drive, double dt)
+    /// <summary>Drive freely, no world: the intent applied and the car moved by it.</summary>
+    public void Step(Drive drive, double dt) => Position += Advance(drive, dt);
+
+    /// <summary>The intent applied to speed and heading; returns where the car WANTS to move this step (world px). The
+    /// world decides how much of it happens (<see cref="Driving"/>).</summary>
+    public Vector2 Advance(Drive drive, double dt)
     {
-        if (dt <= 0) return;
+        if (dt <= 0) return Vector2.Zero;
         double v = SpeedMs;
         if (drive.Throttle) v = v < 0 ? Math.Min(0, v + BrakeMs2 * dt) : Math.Min(TopSpeedMs, v + AccelerationMs2 * dt);
         else if (drive.Brake) v = v > 0 ? Math.Max(0, v - BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - AccelerationMs2 * 0.5 * dt);
@@ -59,7 +64,25 @@ public sealed class Car
         double rate = TurnSlowRad + (TurnFastRad - TurnSlowRad) * share;
         rate *= Math.Min(1.0, speed / TurnFullFromMs);
         Heading = WrapAngle(Heading + (float)(Math.Clamp(drive.Steer, -1f, 1f) * rate * dt * Math.Sign(v)));
-        Position += Forward * (float)(v * _pxPerMetre * dt);
+        return Forward * (float)(v * _pxPerMetre * dt);
+    }
+
+    /// <summary>The height of the surface the car stands on, world px (WI-016).</summary>
+    public float HeightPx { get; set; }
+
+    public void MoveTo(Vector2 at) => Position = at;
+    public void TurnTo(float heading) => Heading = heading;
+
+    /// <summary>Lose speed: <paramref name="keep"/> is the share kept (0 stops the car).</summary>
+    public void Slow(double keep) => SpeedMs *= Math.Clamp(keep, 0, 1);
+
+    /// <summary>Back to a place, stopped (the water's answer, Q3).</summary>
+    public void Reset(Vector2 at, float heading, float heightPx)
+    {
+        Position = at;
+        Heading = heading;
+        HeightPx = heightPx;
+        SpeedMs = 0;
     }
 
     private static float WrapAngle(float a)

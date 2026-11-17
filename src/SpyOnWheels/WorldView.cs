@@ -59,6 +59,8 @@ public sealed class WorldView : IDisposable
 
     public Texture2D Picture(string sourceFile) => _pictures.Get(sourceFile);
 
+    public (int Width, int Height)? PictureSize(string sourceFile) => _pictures.TryGetSize(sourceFile);
+
     /// <summary>One frame of the world; <paramref name="movers"/> draws the game's moving things in each height band.</summary>
     public void Draw(in WorldCamera camera, double clock, Action<(double From, double Below)> movers)
     {
