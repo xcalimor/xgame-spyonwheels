@@ -19,7 +19,8 @@ namespace SpyOnWheels;
 public sealed class SpyGame : Game
 {
     public const string HeroAssetName = "Agent Car";
-    public const float CameraZoom = 0.5f;
+    /// <summary>WI-017: the camera zooms out with speed.</summary>
+    private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
 
     private readonly GraphicsDeviceManager _graphics;
     private readonly Options _options;
@@ -132,6 +133,7 @@ public sealed class SpyGame : Game
                 (keys.IsKeyDown(Keys.Right) ? 1f : 0f) - (keys.IsKeyDown(Keys.Left) ? 1f : 0f));
         var happened = Driving.Step(_car, drive, dt, _drive, _body, _view.Stage.World.Project.EffectivePxPerMetre, _startPose);
         _events[happened] = _events.GetValueOrDefault(happened) + 1;
+        _camera.Update(_car.SpeedMs, dt);
         if (_drive.SurfaceNear(_car.Position, _car.HeightPx) is { Kind: SurfaceKind.Deck }) _onDeckSeconds += dt;
         _clock += dt;
         base.Update(gameTime);
@@ -140,7 +142,7 @@ public sealed class SpyGame : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Black);
-        var camera = _overview ? Overview() : new WorldCamera(_car.Position, CameraZoom, 0f);
+        var camera = _overview ? Overview() : new WorldCamera(_car.Position, _camera.Zoom, 0f);
         float carHeight = _car.HeightPx;
         var viewport = GraphicsDevice.Viewport;
         _view.Draw(camera, _clock, band =>
@@ -203,6 +205,8 @@ public sealed class SpyGame : Game
         if (_overview) { Save(Path.Combine(dir, "skeleton-overview.png")); Exit(); return; }
         if (_shot >= ShotAt.Length || _clock < ShotAt[_shot]) return;
         Save(Path.Combine(dir, FormattableString.Invariant($"skeleton-{ShotAt[_shot]:0.0}s.png")));
+        double cppm = _view.Stage.World.Project.EffectivePxPerMetre;
+        _report.Add(FormattableString.Invariant($"camera at {ShotAt[_shot]:0} s: {_car.SpeedMs * 3.6:0} km/h, zoom {_camera.Zoom:0.000} (target {_camera.TargetAt(_car.SpeedMs):0.000}), view {1280 / _camera.Zoom / cppm:0} x {720 / _camera.Zoom / cppm:0} m"));
         if (++_shot < ShotAt.Length) return;
         float metres = Vector2.Distance(_start, _car.Position) / (float)_view.Stage.World.Project.EffectivePxPerMetre;
         _report.Add(FormattableString.Invariant($"after {_clock:0.00} s simulated ({_frame} frames drawn, {_wall.Elapsed.TotalSeconds:0.0} s wall): ({_car.Position.X:0}, {_car.Position.Y:0}) px, {metres:0.0} m from the start, {_car.SpeedMs * 3.6:0} km/h, heading {MathHelper.ToDegrees(_car.Heading):0} deg"));

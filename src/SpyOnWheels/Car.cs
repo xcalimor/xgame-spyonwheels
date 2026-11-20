@@ -15,7 +15,7 @@ public readonly record struct Drive(bool Throttle, bool Brake, float Steer);
 public sealed class Car
 {
     // The tuning: a first guess for the skeleton's feel, to be felt and changed.
-    public const double TopSpeedMs = 38.0;        // ~137 km/h
+    public const double TopSpeedMs = 46.0;        // ~165 km/h (WI-017 his drive: "the speed could be a bit higher"; was 38)
     public const double ReverseSpeedMs = 6.0;
     public const double AccelerationMs2 = 9.0;
     public const double BrakeMs2 = 22.0;

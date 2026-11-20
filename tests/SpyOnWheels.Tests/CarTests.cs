@@ -37,7 +37,7 @@ public class CarTests
     public void Down_brakes_to_a_stop_then_backs_up_slowly()
     {
         var car = Run(Parked(), new Drive(true, false, 0), 5);
-        Run(car, new Drive(false, true, 0), 2);
+        Run(car, new Drive(false, true, 0), car.SpeedMs / Car.BrakeMs2 + 0.1);   // long enough to stop from any tuning
         Assert.True(car.SpeedMs <= 0);
         Run(car, new Drive(false, true, 0), 10);
         Assert.Equal(-Car.ReverseSpeedMs, car.SpeedMs, 6);
