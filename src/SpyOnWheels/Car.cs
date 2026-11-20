@@ -12,6 +12,25 @@ public readonly record struct Drive(bool Throttle, bool Brake, float Steer);
 /// does; a car standing still does not turn. World pixels and seconds; the tuning is in metres and read at the world's
 /// scale, so a car is the same car in any world.
 /// </summary>
+/// <summary>
+/// **What a surface does to the tyres (WI-019, his ask: "turning gets harder because tyres get better grip on asphalt than
+/// on grass").** <see cref="Grip"/> scales the grip (1 = asphalt); <see cref="DragPerS"/> holds the car back in proportion to
+/// its speed, so flat out it settles where the engine and the drag balance. <see cref="MaxDriftDeg"/> is how far the slide
+/// may swing from the nose: under power at speed a turn always reaches it, so it is what makes a power turn on asphalt
+/// differ from one on grass (his drive: "too small a difference between grass and asphalt").
+/// </summary>
+public readonly record struct Traction(double Grip, double DragPerS, double MaxDriftDeg)
+{
+    /// <summary>The road and the bridge decks: the tuning as WI-018 left it.</summary>
+    public static readonly Traction Asphalt = new(1.6, 0, 18);   // his drive: "make it feel like the tyres suck onto the road" (grip 1 → 1.6, drift 30° → 18°)
+
+    /// <summary>Everything off the road (D1, D2): 60% of the grip, and flat out it holds ~130 km/h.</summary>
+    public static readonly Traction OffRoad = new(0.6, Car.AccelerationMs2 / OffRoadTopSpeedMs, 35);   // loose: the slide swings out to 35°
+
+    /// <summary>Flat out off the road, m/s (~130 km/h).</summary>
+    public const double OffRoadTopSpeedMs = 36;
+}
+
 public sealed class Car
 {
     // The tuning: a first guess for the skeleton's feel, to be felt and changed.
@@ -29,8 +48,10 @@ public sealed class Car
     // when the nose turns, and the tyres pull the motion back in line with the nose up to this much sideways, m/s2.
     public const double GripMs2 = 40.0;            // coasting or braking: holds nearly every turn the steering asks for
     public const double GripPowerMs2 = 20.0;       // under throttle while turning: half, so it runs wide and slides (D2)
-    public const double MaxDriftDeg = 30;          // the slide never passes this angle to the nose: a drift, never a spin (D2)
     public const double GripKeepsSpeed = 0.85;     // the share of the sideways speed the tyres turn into forward speed; the rest is scrubbed
+
+    /// <summary>What the ground under the car does to it (WI-019, set by <see cref="Driving"/> from the world each step).</summary>
+    public Traction Ground { get; set; } = Traction.Asphalt;
 
     private readonly double _pxPerMetre;
 
@@ -68,6 +89,7 @@ public sealed class Car
         if (drive.Throttle) v = v < 0 ? Math.Min(0, v + BrakeMs2 * dt) : Math.Min(TopSpeedMs, v + AccelerationMs2 * dt);
         else if (drive.Brake) v = v > 0 ? Math.Max(0, v - BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - AccelerationMs2 * 0.5 * dt);
         else v = v > 0 ? Math.Max(0, v - RollDragMs2 * dt) : Math.Min(0, v + RollDragMs2 * dt);
+        v -= v * Ground.DragPerS * dt;   // off the road the ground holds the car back (WI-019 D2)
         SpeedMs = v;
 
         double speed = Math.Abs(v);
@@ -79,11 +101,11 @@ public sealed class Car
         TurnTo(WrapAngle(Heading + (float)(Math.Clamp(drive.Steer, -1f, 1f) * rate * dt * Math.Sign(v))));
 
         // The tyres: pull the slide back toward the nose, up to the grip; most of what they take becomes forward speed.
-        double grip = (drive.Throttle && steering ? GripPowerMs2 : GripMs2) * dt;
+        double grip = (drive.Throttle && steering ? GripPowerMs2 : GripMs2) * Ground.Grip * dt;
         double take = Math.Min(Math.Abs(SlipMs), grip);
         SlipMs -= Math.Sign(SlipMs) * take;
         // A drift, not a spin: past the largest angle the tyres take the rest too (D2).
-        double maxSlip = Math.Tan(MathHelper.ToRadians((float)MaxDriftDeg)) * Math.Abs(SpeedMs);
+        double maxSlip = Math.Tan(MathHelper.ToRadians((float)Ground.MaxDriftDeg)) * Math.Abs(SpeedMs);
         if (Math.Abs(SlipMs) > maxSlip) { take += Math.Abs(SlipMs) - maxSlip; SlipMs = Math.Sign(SlipMs) * maxSlip; }
         if (SpeedMs != 0) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, TopSpeedMs);
         // Nose and slide together never pass the top speed.

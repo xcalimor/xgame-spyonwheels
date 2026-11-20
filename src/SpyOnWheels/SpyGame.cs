@@ -213,6 +213,13 @@ public sealed class SpyGame : Game
         _report.Add(FormattableString.Invariant($"events (steps): {string.Join(", ", _events.OrderBy(e => e.Key).Select(e => $"{e.Key} {e.Value}"))}; on a bridge deck {_onDeckSeconds:0.0} s; height now {_car.HeightPx / _view.Stage.World.Project.EffectiveCellHeight:0.00} levels"));
         for (int m = -4; m <= 16; m += 2)
             _report.Add(FormattableString.Invariant($"  ahead {m,3} m: {_drive.Describe(_car.Position + _car.Forward * (float)(m * _view.Stage.World.Project.EffectivePxPerMetre))}"));
+        // WI-019: the surface across the road at the start, every metre from its middle out onto the ground.
+        {
+            var right = new Vector2(MathF.Cos(_startPose.Heading), MathF.Sin(_startPose.Heading));
+            double sppm = _view.Stage.World.Project.EffectivePxPerMetre;
+            _report.Add("traction across the road at the start (m from the middle): " + string.Join(", ", Enumerable.Range(-8, 17).Select(m =>
+                FormattableString.Invariant($"{m} {(_drive.TractionAt(_startPose.At + right * (float)(m * sppm), _startPose.HeightPx) == Traction.Asphalt ? "A" : "g")}"))));
+        }
         // Every deck driven, headless: from 3 m before its start along its run for 6 s; where the car ends up.
         double ppm = _view.Stage.World.Project.EffectivePxPerMetre;
         foreach (var (roadId, deckStart, unit, length, deckHeight) in _drive.Decks)

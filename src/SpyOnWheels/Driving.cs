@@ -25,6 +25,7 @@ public static class Driving
     public static DriveEvent Step(Car car, Drive drive, double dt, IDriveWorld world, CarBody body, double pxPerMetre,
         (Vector2 At, float Heading, float HeightPx) start)
     {
+        car.Ground = world.TractionAt(car.Position, car.HeightPx);   // WI-019: the surface under the car sets its grip
         float headingBefore = car.Heading;
         var wanted = car.Advance(drive, dt);
         // A turn that would push the car's box into something is not taken (turning on the spot against a wall).

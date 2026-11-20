@@ -26,6 +26,9 @@ public interface IDriveWorld
     /// <summary>Whether a deck hangs over <paramref name="at"/> lower than the car is tall above the surface it stands on
     /// (<paramref name="heightPx"/>): a ceiling, so the car cannot be there.</summary>
     bool CeilingOver(Vector2 at, float heightPx) => false;
+
+    /// <summary>What the surface the car stands on at <paramref name="at"/> does to its tyres (WI-019).</summary>
+    Traction TractionAt(Vector2 at, float heightPx) => Traction.Asphalt;
 }
 
 /// <summary>
@@ -158,6 +161,10 @@ public sealed class DriveWorld : IDriveWorld
         normal = Vector2.Zero;
         return false;
     }
+
+    /// <summary>WI-019 D1: a bridge deck or a paved road's band is asphalt; any other ground is off the road.</summary>
+    public Traction TractionAt(Vector2 at, float heightPx) =>
+        SurfaceNear(at, heightPx) is { Kind: SurfaceKind.Ground } && !OnPavedRoad(at) ? Traction.OffRoad : Traction.Asphalt;
 
     public bool CeilingOver(Vector2 at, float heightPx)
     {

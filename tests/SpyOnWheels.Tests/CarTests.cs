@@ -155,4 +155,69 @@ public class CarTests
         Assert.True(t < 1.1, $"{t:0.00} s");
         Assert.True(y0 - car.Position.Y < 25 * Ppm, $"{(y0 - car.Position.Y) / Ppm:0} m");
     }
+
+    // ------------------------------------------------ WI-019 traction: asphalt grips, off the road it does not
+
+    private static double CoastingSlideOn(Traction ground)
+    {
+        // Up to 25 m/s on asphalt, then the turn on the surface under test.
+        var car = Parked();
+        double max = 0;
+        while (car.SpeedMs < 25) car.Step(new Drive(true, false, 0), Dt);
+        car.Ground = ground;
+        for (double t = 0; t < 1; t += Dt)
+        {
+            car.Step(new Drive(false, false, 1), Dt);   // coasting through the turn: the grip, not the drift cap, decides
+            max = Math.Max(max, Math.Abs(car.SlipMs));
+        }
+        return max;
+    }
+
+    [Fact]
+    public void Off_the_road_the_same_turn_slides_more()
+    {
+        double asphalt = CoastingSlideOn(Traction.Asphalt), off = CoastingSlideOn(Traction.OffRoad);
+        Assert.True(off > 1.5 * asphalt, $"off the road {off:0.0} m/s, asphalt {asphalt:0.0}");
+    }
+
+    [Fact]
+    public void Flat_out_off_the_road_holds_about_130()
+    {
+        var car = Parked();
+        car.Ground = Traction.OffRoad;
+        Run(car, new Drive(true, false, 0), 15);
+        Assert.InRange(car.SpeedMs * 3.6, 125, 135);
+    }
+
+    [Fact]
+    public void Rolling_onto_grass_at_top_speed_sheds_speed_fast()
+    {
+        var car = Run(Parked(), new Drive(true, false, 0), 8);
+        car.Ground = Traction.OffRoad;
+        Run(car, new Drive(false, false, 0), 1);
+        Assert.True(car.SpeedMs * 3.6 < 120, $"{car.SpeedMs * 3.6:0} km/h after 1 s on grass");
+    }
+
+    private static double PowerDriftDegOn(Traction ground)
+    {
+        var car = Parked();
+        while (car.SpeedMs < 30) car.Step(new Drive(true, false, 0), Dt);
+        car.Ground = ground;
+        double worst = 0;
+        for (double t = 0; t < 1.5; t += Dt)
+        {
+            car.Step(new Drive(true, false, 1), Dt);
+            worst = Math.Max(worst, Math.Atan2(Math.Abs(car.SlipMs), Math.Abs(car.SpeedMs)) * 180 / Math.PI);
+        }
+        return worst;
+    }
+
+    [Fact]
+    public void On_asphalt_the_tyres_suck_onto_the_road_on_grass_the_tail_swings_out()
+    {
+        // His drive (WI-019 round 1): "too small a difference between grass and asphalt … like the tyres suck onto the road".
+        double asphalt = PowerDriftDegOn(Traction.Asphalt), grass = PowerDriftDegOn(Traction.OffRoad);
+        Assert.True(grass > asphalt + 10, $"power drift: asphalt {asphalt:0} deg, grass {grass:0} deg");
+        Assert.True(CoastingSlideOn(Traction.Asphalt) < 0.5, $"coasting on asphalt slid {CoastingSlideOn(Traction.Asphalt):0.0} m/s");
+    }
 }

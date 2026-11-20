@@ -20,6 +20,8 @@ public class DrivingTests
         public Func<Vector2, bool> Water = _ => false;
         public readonly List<(Rectangle Area, float Height)> Decks = new();
         public readonly List<Vector2[]> Solids = new();
+        public Func<Vector2, Traction> Traction = _ => SpyOnWheels.Traction.Asphalt;
+        public Traction TractionAt(Vector2 at, float heightPx) => Traction(at);
 
         public Surface? SurfaceNear(Vector2 at, float heightPx)
         {
@@ -170,6 +172,16 @@ public class DrivingTests
         var (car, events) = Drive(world, Vector2.Zero, 0, 6, height: Level);
         Assert.Contains(DriveEvent.Stopped, events);
         Assert.True(2 * Level - car.HeightPx >= DriveWorld.HeadroomMetres * Ppm - 1, $"room left {(2 * Level - car.HeightPx) / Ppm:0.00} m");
+    }
+
+    [Fact]
+    public void Driving_off_the_road_the_world_hands_the_car_its_grip()
+    {
+        // WI-019: asphalt north of y = -1500, grass beyond. The car drives onto the grass and feels it.
+        var world = new World { Traction = p => p.Y < -1500 ? SpyOnWheels.Traction.OffRoad : SpyOnWheels.Traction.Asphalt };
+        var (car, _) = Drive(world, Vector2.Zero, 0, 3);
+        Assert.True(car.Position.Y < -1500);
+        Assert.Equal(SpyOnWheels.Traction.OffRoad, car.Ground);
     }
 
     [Fact]
