@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Xna.Framework;
 
 namespace SpyOnWheels;
 
@@ -33,11 +34,38 @@ public sealed class SpeedCamera
         return NearZoom / (float)(1 + (WidenAtTopSpeed - 1) * share);
     }
 
-    /// <summary>One step of time: the zoom moves part of the way toward the speed's target.</summary>
-    public void Update(double speedMs, double dt)
+    /// <summary>
+    /// **The lead (WI-017 D4, his ruling 2026-11-20: "the camera should focus in high speed more on what's in front"):**
+    /// at top speed the camera sits this share of the half-view ahead of the car, the way it travels, so the car is
+    /// halfway between the centre and the trailing edge. A share of the view on each axis, so it stays on screen at any
+    /// zoom and shows more ahead on the wide axis.
+    /// </summary>
+    public const float LeadAtTopSpeed = 0.5f;
+
+    /// <summary>How quickly the lead follows (D5): a little gentler than the zoom, a moving centre is felt more.</summary>
+    public const double LeadEaseSeconds = 0.3;
+
+    /// <summary>Where the camera centres relative to the car now, world px.</summary>
+    public Vector2 Lead { get; private set; }
+
+    /// <summary>The lead the camera eases toward: <paramref name="forward"/> is the car's facing (unit); backing up leads
+    /// backward (D6). <paramref name="viewPx"/> is the window, screen px.</summary>
+    public Vector2 LeadTargetAt(double speedMs, Vector2 forward, Vector2 viewPx, float zoom)
+    {
+        float share = (float)Math.Clamp(Math.Abs(speedMs) / _topSpeedMs, 0, 1);
+        var travel = forward * MathF.Sign((float)speedMs);
+        var halfView = viewPx / 2f / zoom;
+        return travel * halfView * share * LeadAtTopSpeed;
+    }
+
+    /// <summary>One step of time: the zoom and the lead move part of the way toward the speed's targets.</summary>
+    public void Update(double speedMs, double dt, Vector2 forward = default, Vector2 viewPx = default)
     {
         if (dt <= 0) return;
         float target = TargetAt(speedMs);
         Zoom += (target - Zoom) * (float)(1 - Math.Exp(-dt / EaseSeconds));
+        if (viewPx == Vector2.Zero) viewPx = new Vector2(1280, 720);
+        var lead = LeadTargetAt(speedMs, forward, viewPx, Zoom);
+        Lead += (lead - Lead) * (float)(1 - Math.Exp(-dt / LeadEaseSeconds));
     }
 }

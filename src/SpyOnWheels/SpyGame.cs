@@ -133,7 +133,7 @@ public sealed class SpyGame : Game
                 (keys.IsKeyDown(Keys.Right) ? 1f : 0f) - (keys.IsKeyDown(Keys.Left) ? 1f : 0f));
         var happened = Driving.Step(_car, drive, dt, _drive, _body, _view.Stage.World.Project.EffectivePxPerMetre, _startPose);
         _events[happened] = _events.GetValueOrDefault(happened) + 1;
-        _camera.Update(_car.SpeedMs, dt);
+        _camera.Update(_car.SpeedMs, dt, _car.Forward, new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height));
         if (_drive.SurfaceNear(_car.Position, _car.HeightPx) is { Kind: SurfaceKind.Deck }) _onDeckSeconds += dt;
         _clock += dt;
         base.Update(gameTime);
@@ -142,7 +142,7 @@ public sealed class SpyGame : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Black);
-        var camera = _overview ? Overview() : new WorldCamera(_car.Position, _camera.Zoom, 0f);
+        var camera = _overview ? Overview() : new WorldCamera(_car.Position + _camera.Lead, _camera.Zoom, 0f);
         float carHeight = _car.HeightPx;
         var viewport = GraphicsDevice.Viewport;
         _view.Draw(camera, _clock, band =>
@@ -206,7 +206,7 @@ public sealed class SpyGame : Game
         if (_shot >= ShotAt.Length || _clock < ShotAt[_shot]) return;
         Save(Path.Combine(dir, FormattableString.Invariant($"skeleton-{ShotAt[_shot]:0.0}s.png")));
         double cppm = _view.Stage.World.Project.EffectivePxPerMetre;
-        _report.Add(FormattableString.Invariant($"camera at {ShotAt[_shot]:0} s: {_car.SpeedMs * 3.6:0} km/h, zoom {_camera.Zoom:0.000} (target {_camera.TargetAt(_car.SpeedMs):0.000}), view {1280 / _camera.Zoom / cppm:0} x {720 / _camera.Zoom / cppm:0} m"));
+        _report.Add(FormattableString.Invariant($"camera at {ShotAt[_shot]:0} s: {_car.SpeedMs * 3.6:0} km/h, zoom {_camera.Zoom:0.000} (target {_camera.TargetAt(_car.SpeedMs):0.000}), view {1280 / _camera.Zoom / cppm:0} x {720 / _camera.Zoom / cppm:0} m, lead {_camera.Lead.Length() / cppm:0.0} m"));
         if (++_shot < ShotAt.Length) return;
         float metres = Vector2.Distance(_start, _car.Position) / (float)_view.Stage.World.Project.EffectivePxPerMetre;
         _report.Add(FormattableString.Invariant($"after {_clock:0.00} s simulated ({_frame} frames drawn, {_wall.Elapsed.TotalSeconds:0.0} s wall): ({_car.Position.X:0}, {_car.Position.Y:0}) px, {metres:0.0} m from the start, {_car.SpeedMs * 3.6:0} km/h, heading {MathHelper.ToDegrees(_car.Heading):0} deg"));
@@ -231,20 +231,23 @@ public sealed class SpyGame : Game
                 furthest = MathF.Max(furthest, Vector2.Dot(probe.Position - deckStart, unit));
             }
             _report.Add(FormattableString.Invariant($"deck run {roadId[..Math.Min(8, roadId.Length)]} at level {deckHeight / _view.Stage.World.Project.EffectiveCellHeight:0}, {length / ppm:0} m long: reached {furthest / ppm:0.0} m along ({(furthest > length ? "CROSSED" : "did not cross")}), {string.Join(", ", seen.OrderBy(e => e.Key).Select(e => $"{e.Key} {e.Value}"))}; ends on: {_drive.Describe(probe.Position)}"));
-            // The same deck again, steering hard right all the way: does the car ever get under or beside it, lower?
+            // The same deck again: straight on until on it, then steering hard (WI-018: drifting) into its side: does it fall off?
             foreach (float steer in new[] { 1f, -1f })
             {
                 var side = new Car(from, heading, ppm) { HeightPx = probe.HeightPx };
                 side.Reset(from, heading, _drive.SurfaceNear(from, deckHeight)?.HeightPx ?? deckHeight);
-                bool slipped = false;
-                var across = new Vector2(-unit.Y, unit.X);
+                // WI-018: a drifting car may leave the road before the deck and go down beside it (a real route); what must never
+                // happen is a car standing on the deck one step and below it the next.
+                bool slipped = false, reached = false;
+                float level = _view.Stage.World.Project.EffectiveCellHeight;
                 for (int i = 0; i < 360; i++)
                 {
-                    Driving.Step(side, new Drive(true, false, steer), 1 / 60.0, _drive, _body, ppm, (from, heading, side.HeightPx));
-                    float a = Vector2.Dot(side.Position - deckStart, unit), c = MathF.Abs(Vector2.Dot(side.Position - deckStart, across));
-                    if (a > 0 && a < length && c < 6 * ppm && side.HeightPx < deckHeight - 0.5f * _view.Stage.World.Project.EffectiveCellHeight) slipped = true;
+                    bool onDeck = Math.Abs(side.HeightPx - deckHeight) < 1 && _drive.SurfaceNear(side.Position, side.HeightPx) is { Kind: SurfaceKind.Deck };
+                    reached |= onDeck;
+                    Driving.Step(side, new Drive(true, false, reached ? steer : 0), 1 / 60.0, _drive, _body, ppm, (from, heading, side.HeightPx));
+                    if (onDeck && side.HeightPx < deckHeight - 0.5f * level) slipped = true;
                 }
-                _report.Add($"  steering {(steer > 0 ? "right" : "left")} on it: {(slipped ? "SLIPPED below the deck beside or under it" : "stayed at the deck's height or never reached it")}");
+                _report.Add($"  steering {(steer > 0 ? "right" : "left")} on it: {(slipped ? "FELL OFF the deck" : reached ? "stayed on the deck while on it" : "drifted off before reaching it")}");
             }
         }
         _report.Insert(0, metres > 10 && _view.Stage.Problems.Count == 0 && _carSprite is not null ? "PASS" : "FAIL");
