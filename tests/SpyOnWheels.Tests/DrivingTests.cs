@@ -36,6 +36,9 @@ public class DrivingTests
             return best;
         }
 
+        public bool CeilingOver(Vector2 at, float heightPx) =>
+            Decks.Any(d => d.Height - heightPx > 0.5f && d.Height - heightPx < DriveWorld.HeadroomMetres * Ppm && d.Area.Contains((int)at.X, (int)at.Y));
+
         public bool HitsSolid(Vector2[] shape, float heightPx, out Vector2 normal)
         {
             foreach (var s in Solids)
@@ -155,6 +158,18 @@ public class DrivingTests
         var (car, events) = Drive(world, Vector2.Zero, 0, 1.5, height: Level);
         Assert.DoesNotContain(DriveEvent.Stopped, events);
         Assert.Equal(Level, car.HeightPx);
+    }
+
+    [Fact]
+    public void Under_a_deck_the_rising_ground_is_a_ceiling_the_car_stops_against()
+    {
+        // His drive (2026-11-20, bridge 608af5a2): a deck two levels up, the ground under it a ramp rising from one level to
+        // two. The car under it must stop where the room runs out, never come up through the deck.
+        var world = new World { Ground = p => Math.Clamp(Level - (p.Y + 1000), Level, 2 * Level) };   // 1 level, rising north of y = -1000
+        world.Decks.Add((new Rectangle(-200, -2500, 400, 2300), 2 * Level));
+        var (car, events) = Drive(world, Vector2.Zero, 0, 6, height: Level);
+        Assert.Contains(DriveEvent.Stopped, events);
+        Assert.True(2 * Level - car.HeightPx >= DriveWorld.HeadroomMetres * Ppm - 1, $"room left {(2 * Level - car.HeightPx) / Ppm:0.00} m");
     }
 
     [Fact]

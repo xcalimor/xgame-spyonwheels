@@ -22,6 +22,10 @@ public interface IDriveWorld
     /// <summary>Whether the convex <paramref name="shape"/> at <paramref name="heightPx"/> overlaps a solid; if so,
     /// <paramref name="normal"/> points out of the solid, toward the shape.</summary>
     bool HitsSolid(Vector2[] shape, float heightPx, out Vector2 normal);
+
+    /// <summary>Whether a deck hangs over <paramref name="at"/> lower than the car is tall above the surface it stands on
+    /// (<paramref name="heightPx"/>): a ceiling, so the car cannot be there.</summary>
+    bool CeilingOver(Vector2 at, float heightPx) => false;
 }
 
 /// <summary>
@@ -38,7 +42,7 @@ public sealed class DriveWorld : IDriveWorld
 
     private readonly WorldFile _world;
     private readonly GroundSurface _ground;
-    private readonly float _levelPx, _tolerancePx;
+    private readonly float _levelPx, _tolerancePx, _headroomPx;
     private readonly int _cell;
     private readonly Func<int, bool> _isWater;
     private readonly List<(LaneBridge Bridge, LaneBridgeGeometry.Frame Frame, float HeightPx)> _decks = new();
@@ -51,6 +55,7 @@ public sealed class DriveWorld : IDriveWorld
         _ground = new GroundSurface(world);
         _levelPx = world.Project.EffectiveCellHeight;
         _tolerancePx = StepLevels * _levelPx;
+        _headroomPx = (float)(HeadroomMetres * world.Project.EffectivePxPerMetre);
         _cell = world.Project.CellSize;
         _isWater = SlopeField.WaterByPalette(world);
 
@@ -81,6 +86,11 @@ public sealed class DriveWorld : IDriveWorld
 
     /// <summary>How many bridge decks the car can drive on.</summary>
     public int DeckCount => _decks.Count;
+
+    /// <summary>The room the car needs under a deck, in metres: a car is about 1.4 m tall, a deck has a thickness. Less, and
+    /// the deck is a ceiling the car stops against (his drive, 2026-11-20: under bridge 608af5a2 the car climbed the ground
+    /// ramp and came up THROUGH the deck).</summary>
+    public const double HeadroomMetres = 2.0;
 
     /// <summary>A bridge wall's width (the editor draws 0.8 m).</summary>
     public const double WallMetres = 0.8;
@@ -146,6 +156,16 @@ public sealed class DriveWorld : IDriveWorld
             if (Geometry.Overlap(shape, solid, out normal)) return true;
         }
         normal = Vector2.Zero;
+        return false;
+    }
+
+    public bool CeilingOver(Vector2 at, float heightPx)
+    {
+        foreach (var (bridge, f, h) in _decks)
+        {
+            float room = h - heightPx;
+            if (room > 0.5f && room < _headroomPx && OnDeck(bridge, f, at)) return true;
+        }
         return false;
     }
 

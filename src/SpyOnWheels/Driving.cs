@@ -95,7 +95,7 @@ public static class Driving
         heightPx = carHeightPx;
         normal = Vector2.Zero;
         var shape = body.Shape(at, heading);
-        if (world.SurfaceNear(at, carHeightPx) is not { } centre) return false;
+        if (world.SurfaceNear(at, carHeightPx) is not { } centre || world.CeilingOver(at, centre.HeightPx)) return false;
         // Each footprint point is reached by walking out from the centre in short steps, each surface near the last: a ramp
         // climbs a little per step and passes; a sheer edge is one whole level at once and stops the walk (D1).
         float walkPx = body.FeelStepPx;
@@ -108,6 +108,8 @@ public static class Driving
                 if (world.SurfaceNear(Vector2.Lerp(at, p, k / (float)n), h) is not { } s) return false;
                 h = s.HeightPx;
             }
+            // A deck too low over the point is a ceiling: the car stops against it, never rises through it.
+            if (world.CeilingOver(p, h)) return false;
         }
         heightPx = centre.HeightPx;
         return !world.HitsSolid(shape, heightPx, out normal);
