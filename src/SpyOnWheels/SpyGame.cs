@@ -19,6 +19,12 @@ namespace SpyOnWheels;
 public sealed class SpyGame : Game
 {
     public const string HeroAssetName = "Agent Car";
+    /// <summary>WI-020 D3: the car the player must stop.</summary>
+    public const string TargetAssetName = "Pickup";
+    private (string SourceFile, Rectangle Rect)? _targetSprite;
+    private Route? _route;
+    private Chase? _chase;
+    private bool _againHeld;
     /// <summary>WI-017: the camera zooms out with speed.</summary>
     private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
 
@@ -58,15 +64,19 @@ public sealed class SpyGame : Game
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         var stage = Stage.Open(_options.World, _options.Themes);
         _view = new WorldView(GraphicsDevice, _spriteBatch, stage, _options.Themes);
-        _carSprite = HeroSprite(stage.World);
+        _carSprite = SpriteOf(stage.World, HeroAssetName);
+        _targetSprite = SpriteOf(stage.World, TargetAssetName);
         var (at, heading) = StartOf(stage.World, _view.RoadScene);
         _start = at;
         _car = new Car(at, heading, stage.World.Project.EffectivePxPerMetre);
         // WI-016: the world as the car feels it, the car's box, and the start it sinks back to.
         _drive = new DriveWorld(stage.World, _view.RoadScene, _view.Placed, _view.PictureSize);
-        _body = HeroBody(stage.World, _carSprite?.Rect);
+        _body = BodyOf(stage.World, HeroAssetName, _carSprite?.Rect);
         _car.HeightPx = _view.HeightPxAt(at);
         _startPose = (at, heading, _car.HeightPx);
+        // WI-020: the chase, when the stage has a road for the target to flee along.
+        _route = Route.Of(stage.World, _view.RoadScene);
+        if (_route is not null) NewChase();
         Window.Title = $"Spy On Wheels - {stage.World.Project.Name}" + (stage.Problems.Count == 0 ? "" : $" ({stage.Problems.Count} problems)");
         _report.AddRange(stage.Describe());
         _report.Add($"hero: {(_carSprite is { } s ? $"{HeroAssetName} {s.Rect.Width}x{s.Rect.Height} px from {s.SourceFile}" : "MISSING - drawn as a box")}");
@@ -99,10 +109,21 @@ public sealed class SpyGame : Game
         return (at, heading);
     }
 
-    /// <summary>The hero's picture: the world's sprite named <see cref="HeroAssetName"/>, its poster frame.</summary>
-    private static (string SourceFile, Rectangle Rect)? HeroSprite(WorldFile world)
+    /// <summary>WI-020: a fresh chase on the stage's route: the player behind, the target ahead, full health.</summary>
+    private void NewChase()
     {
-        var asset = world.Assets.FirstOrDefault(a => a.Name == HeroAssetName && a.Class == AssetClass.Sprite);
+        var world = _view.Stage.World;
+        _chase = new Chase(_route!, _drive, world.Project.EffectivePxPerMetre, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect),
+            _view.HeightPxAt, world.Project.EffectiveCellHeight);
+        _car = _chase.Player;
+        _startPose = _chase.PlayerStart;
+        _start = _chase.PlayerStart.At;
+    }
+
+    /// <summary>A car's picture: the world's sprite named <paramref name="name"/>, its poster frame.</summary>
+    private static (string SourceFile, Rectangle Rect)? SpriteOf(WorldFile world, string name)
+    {
+        var asset = world.Assets.FirstOrDefault(a => a.Name == name && a.Class == AssetClass.Sprite);
         if (asset is null || world.PrimaryPicture(asset) is not { } picture || SpriteScene.PosterSeries(asset) is not { Frames.Count: > 0 } series) return null;
         if (asset.FrameById(series.Frames[0].Frame) is not { } frame) return null;
         var (x, y, w, h) = FrameUvMath.FrameRect(frame);
@@ -111,9 +132,9 @@ public sealed class SpyGame : Game
 
     /// <summary>D3: the car's box, its collision box if the hero sprite has one, otherwise 94% of its frame's length and
     /// 78% of its width (the rig's car is 4.72 m long in a 5 m frame).</summary>
-    private static CarBody HeroBody(WorldFile world, Rectangle? frameRect)
+    private static CarBody BodyOf(WorldFile world, string name, Rectangle? frameRect)
     {
-        var asset = world.Assets.FirstOrDefault(a => a.Name == HeroAssetName && a.Class == AssetClass.Sprite);
+        var asset = world.Assets.FirstOrDefault(a => a.Name == name && a.Class == AssetClass.Sprite);
         var series = asset is null ? null : SpriteScene.PosterSeries(asset);
         var frame = asset is not null && series is { Frames.Count: > 0 } ? asset.FrameById(series.Frames[0].Frame) : null;
         if (asset is not null && Collision.For(asset, frame) is { Count: > 0 } boxes)
@@ -131,8 +152,19 @@ public sealed class SpyGame : Game
             ? new Drive(Throttle: true, Brake: false, Steer: 0f)   // the scripted drive: flat out along the first road
             : new Drive(keys.IsKeyDown(Keys.Up), keys.IsKeyDown(Keys.Down),
                 (keys.IsKeyDown(Keys.Right) ? 1f : 0f) - (keys.IsKeyDown(Keys.Left) ? 1f : 0f));
-        var happened = Driving.Step(_car, drive, dt, _drive, _body, _view.Stage.World.Project.EffectivePxPerMetre, _startPose);
-        _events[happened] = _events.GetValueOrDefault(happened) + 1;
+        if (_chase is not null)
+        {
+            // R (or Enter once it is over) starts the chase again: failure is fast to retry (vision §7).
+            bool again = keys.IsKeyDown(Keys.R) || (_chase.State != ChaseState.Running && keys.IsKeyDown(Keys.Enter));
+            if (again && !_againHeld) NewChase();
+            _againHeld = again;
+            _chase.Step(drive, dt);
+        }
+        else
+        {
+            var happened = Driving.Step(_car, drive, dt, _drive, _body, _view.Stage.World.Project.EffectivePxPerMetre, _startPose);
+            _events[happened] = _events.GetValueOrDefault(happened) + 1;
+        }
         _camera.Update(_car.SpeedMs, dt, _car.Forward, new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height));
         if (_drive.SurfaceNear(_car.Position, _car.HeightPx) is { Kind: SurfaceKind.Deck }) _onDeckSeconds += dt;
         _clock += dt;
@@ -142,13 +174,26 @@ public sealed class SpyGame : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Black);
-        var camera = _overview ? Overview() : new WorldCamera(_car.Position + _camera.Lead, _camera.Zoom, 0f);
+        // WI-020 cold check: the 10 s picture looks at the target, the 20 s one at the border (the scripted car is elsewhere).
+        var focus = _options.Shots is not null && _chase is not null
+            ? _shot == 1 ? _chase.Target.Position : _shot == 2 ? _chase.Route.PointAt(_chase.BorderAlong) : _car.Position + _camera.Lead
+            : _car.Position + _camera.Lead;
+        var camera = _overview ? Overview() : new WorldCamera(focus, _camera.Zoom, 0f);
         float carHeight = _car.HeightPx;
         var viewport = GraphicsDevice.Viewport;
         _view.Draw(camera, _clock, band =>
         {
-            if (carHeight >= band.From && carHeight < band.Below) DrawCar(camera, viewport, carHeight);
+            bool In(float h) => h >= band.From && h < band.Below;
+            if (_chase is not null)
+            {
+                var b = _chase.Route.PointAt(_chase.BorderAlong);
+                float bh = _view.HeightPxAt(b);
+                if (In(bh)) DrawBorder(camera, viewport, bh);
+                if (In(_chase.Target.HeightPx)) DrawCar(camera, viewport, _chase.Target, _targetSprite, Color.IndianRed);
+            }
+            if (In(carHeight)) DrawCar(camera, viewport, _car, _carSprite, Color.Silver);
         });
+        if (_chase is not null) DrawHud(viewport);
         base.Draw(gameTime);
         _frame++;
         if (_options.Shots is { } dir) Script(dir);
@@ -158,21 +203,83 @@ public sealed class SpyGame : Game
 
     /// <summary>The car about its centre, at its own size (the world's 64 px per metre is the sprite's), by the 2D camera of
     /// the ground's height under it.</summary>
-    private void DrawCar(in WorldCamera camera, Viewport viewport, float heightPx)
+    private void DrawCar(in WorldCamera camera, Viewport viewport, Car car, (string SourceFile, Rectangle Rect)? sprite, Color fallback)
     {
         _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.LinearClamp,
-            transformMatrix: camera.AtHeight(heightPx, viewport).ViewMatrix(viewport));
-        if (_carSprite is { } s)
+            transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
+        if (sprite is { } s)
         {
             var texture = _view.Picture(s.SourceFile);
-            _spriteBatch.Draw(texture, _car.Position, s.Rect, Color.White, _car.Heading, new Vector2(s.Rect.Width / 2f, s.Rect.Height / 2f), 1f, SpriteEffects.None, 0f);
+            _spriteBatch.Draw(texture, car.Position, s.Rect, Color.White, car.Heading, new Vector2(s.Rect.Width / 2f, s.Rect.Height / 2f), 1f, SpriteEffects.None, 0f);
         }
         else
         {
             _pixel ??= MakePixel();
-            _spriteBatch.Draw(_pixel, _car.Position, null, Color.Silver, _car.Heading, new Vector2(0.5f), new Vector2(150, 300), SpriteEffects.None, 0f);
+            _spriteBatch.Draw(_pixel, car.Position, null, fallback, car.Heading, new Vector2(0.5f), new Vector2(150, 300), SpriteEffects.None, 0f);
         }
         _spriteBatch.End();
+    }
+
+    /// <summary>WI-020 D4: the border, a red and white chequered band across the route.</summary>
+    private void DrawBorder(in WorldCamera camera, Viewport viewport, float heightPx)
+    {
+        _pixel ??= MakePixel();
+        var c = _chase!;
+        var at = c.Route.PointAt(c.BorderAlong);
+        float heading = c.Route.HeadingAt(c.BorderAlong);
+        var right = new Vector2(MathF.Cos(heading), MathF.Sin(heading));
+        var fwd = new Vector2(MathF.Sin(heading), -MathF.Cos(heading));
+        float ppm = (float)_view.Stage.World.Project.EffectivePxPerMetre, sq = ppm;   // 1 m squares
+        _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, transformMatrix: camera.AtHeight(heightPx, viewport).ViewMatrix(viewport));
+        for (int i = -7; i < 7; i++)
+            for (int j = 0; j < 2; j++)
+            {
+                var p = at + right * (i * sq) + fwd * (j * sq);
+                _spriteBatch.Draw(_pixel, p, null, (i + j) % 2 == 0 ? Color.Red : Color.White, heading, Vector2.Zero, new Vector2(sq, sq), SpriteEffects.None, 0f);
+            }
+        _spriteBatch.End();
+    }
+
+    /// <summary>WI-020: health, the gap to the target, the last contact, and the outcome.</summary>
+    private void DrawHud(Viewport viewport)
+    {
+        _pixel ??= MakePixel();
+        var c = _chase!;
+        _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.PointClamp);
+        // Health: a bar, top left.
+        var bar = new Rectangle(20, 20, 300, 18);
+        _spriteBatch.Draw(_pixel, new Rectangle(bar.X - 2, bar.Y - 2, bar.Width + 4, bar.Height + 4), Color.Black * 0.7f);
+        float share = (float)(c.Health / Chase.MaxHealth);
+        _spriteBatch.Draw(_pixel, new Rectangle(bar.X, bar.Y, (int)(bar.Width * share), bar.Height), share > 0.5f ? Color.LimeGreen : share > 0.25f ? Color.Orange : Color.Red);
+        PixelFont.Draw(_spriteBatch, _pixel, $"HEALTH {c.Health:0}", new Vector2(bar.Right + 12, bar.Y + 1), 3, Color.White);
+        float toBorder = (c.BorderAlong - c.Runner.Along) / (float)_view.Stage.World.Project.EffectivePxPerMetre;
+        PixelFont.Draw(_spriteBatch, _pixel, $"TARGET {c.GapMetres:0} M   BORDER {Math.Max(0, toBorder):0} M   {c.Player.SpeedMs * 3.6:0} KM/H", new Vector2(20, 50), 3, Color.White);
+        if (c.Contacts.Count > 0)
+        {
+            var (at, hit) = c.Contacts[^1];
+            if (c.Clock - at < 2.5)
+            {
+                string what = hit.Kind switch { ContactKind.Rear => "REAR", ContactKind.Side => "SIDE", ContactKind.Angled => "ANGLED", _ => "HEAD-ON" };
+                string did = hit.Kind == ContactKind.Frontal ? "" : hit.SpunOut ? " - SPUN OUT!" : hit.Kind == ContactKind.Side ? " - THROWN" : " - WOBBLE";
+                PixelFont.Draw(_spriteBatch, _pixel, $"{what} {hit.ClosingMs * 3.6:0} KM/H{did}  -{hit.Damage:0}", new Vector2(20, 76), 3, Color.Yellow);
+            }
+        }
+        if (c.State == ChaseState.Running && c.Clock < 3)
+            Centre("STOP THE PICKUP BEFORE THE BORDER", viewport.Height / 3f, 5, Color.White);
+        if (c.State != ChaseState.Running)
+        {
+            Centre(c.Outcome ?? "", viewport.Height / 2f - 40, 10, c.State == ChaseState.Won ? Color.LimeGreen : Color.Red);
+            Centre("ENTER OR R TO GO AGAIN", viewport.Height / 2f + 30, 4, Color.White);
+        }
+        _spriteBatch.End();
+
+        void Centre(string text, float y, float scale, Color color)
+        {
+            float w = PixelFont.Width(text, scale);
+            var at = new Vector2((viewport.Width - w) / 2f, y);
+            _spriteBatch.Draw(_pixel, new Rectangle((int)at.X - 12, (int)y - 10, (int)w + 24, (int)(5 * scale) + 20), Color.Black * 0.6f);
+            PixelFont.Draw(_spriteBatch, _pixel, text, at, scale, color);
+        }
     }
 
     private Texture2D MakePixel()
@@ -257,7 +364,36 @@ public sealed class SpyGame : Game
                 _report.Add($"  steering {(steer > 0 ? "right" : "left")} on it: {(slipped ? "FELL OFF the deck" : reached ? "stayed on the deck while on it" : "drifted off before reaching it")}");
             }
         }
-        _report.Insert(0, metres > 10 && _view.Stage.Problems.Count == 0 && _carSprite is not null ? "PASS" : "FAIL");
+        // WI-020: the chase, headless. The route, then the target alone (the player parked): does it reach the border, how
+        // fast, how far off its line it ever strays, how long off the road.
+        bool runnerOk = true;
+        if (_route is not null)
+        {
+            var world = _view.Stage.World;
+            _report.Add(FormattableString.Invariant($"route: {_route.Length / ppm:0} m, {_route.Points.Count} points, from ({_route.Points[0].X / world.Project.CellSize:0.0}, {_route.Points[0].Y / world.Project.CellSize:0.0}) to ({_route.Points[^1].X / world.Project.CellSize:0.0}, {_route.Points[^1].Y / world.Project.CellSize:0.0}) cells"));
+            var alone = new Chase(_route, _drive, ppm, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect), _view.HeightPxAt, world.Project.EffectiveCellHeight);
+            _report.Add(FormattableString.Invariant($"border at {alone.BorderAlong / ppm:0} m along; target starts {(alone.Runner.Along) / ppm:0} m along; target {(_targetSprite is null ? "MISSING - a box" : TargetAssetName)}"));
+            float worstOff = 0; double offRoad = 0, topKmh = 0, lastOff = 0;
+            var offAt = new List<string>();
+            var parked = new Drive(false, false, 0);
+            while (alone.State == ChaseState.Running && alone.Clock < 120)
+            {
+                alone.Step(parked, 1 / 60.0);
+                worstOff = MathF.Max(worstOff, Vector2.Distance(alone.Target.Position, _route.PointAt(alone.Runner.Along)));
+                if (_drive.TractionAt(alone.Target.Position, alone.Target.HeightPx) != Traction.Asphalt)
+                {
+                    if (offRoad == 0 || alone.Clock - lastOff > 0.5) offAt.Add(FormattableString.Invariant($"{alone.Runner.Along / ppm:0} m ({alone.Target.SpeedMs * 3.6:0} km/h)"));
+                    lastOff = alone.Clock;
+                    offRoad += 1 / 60.0;
+                }
+                topKmh = Math.Max(topKmh, alone.Target.SpeedMs * 3.6);
+            }
+            runnerOk = alone.Outcome == "IT GOT AWAY" && worstOff / ppm < 4;
+            _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, furthest off its line {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s => {(runnerOk ? "ok" : "BAD")}"));
+            if (offAt.Count > 0) _report.Add("  left the road at: " + string.Join(", ", offAt));
+            _report.Add(FormattableString.Invariant($"the scripted drive's chase: {_chase?.Outcome ?? "running"} at {_chase?.Clock:0.0} s; contacts: {string.Join("; ", _chase?.Contacts.Select(h => FormattableString.Invariant($"{h.At:0.0} s {h.Result.Kind} {h.Result.ClosingMs * 3.6:0} km/h spin {h.Result.SpunOut} -{h.Result.Damage:0}")) ?? Array.Empty<string>())}"));
+        }
+        _report.Insert(0, metres > 10 && _view.Stage.Problems.Count == 0 && _carSprite is not null && runnerOk ? "PASS" : "FAIL");
         File.WriteAllLines(Path.Combine(dir, "skeleton-report.txt"), _report);
         _overview = true;   // one more frame: the whole stage from high up, then exit
     }

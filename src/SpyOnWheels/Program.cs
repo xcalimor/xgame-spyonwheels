@@ -32,7 +32,7 @@ namespace SpyOnWheels
         {
             string? Opt(string name) => args.SkipWhile(a => a != name).Skip(1).FirstOrDefault();
             return new Options(
-                Opt("--world") ?? Path.Combine(RepoRoot(), "Stages", "Raids-001.world.json"),
+                Opt("--world") ?? Path.Combine(RepoRoot(), "Stages", "theisland.world.world.json"),   // WI-020: his island is the stage
                 Opt("--themes") ?? DefaultThemes,
                 Opt("--report"),
                 Opt("--shots"));

@@ -230,9 +230,13 @@ public sealed class DriveWorld : IDriveWorld
 /// <summary>Convex polygon overlap by separating axes, with the axis of least overlap as the push-out normal.</summary>
 public static class Geometry
 {
-    public static bool Overlap(Vector2[] a, Vector2[] b, out Vector2 normal)
+    public static bool Overlap(Vector2[] a, Vector2[] b, out Vector2 normal) => Overlap(a, b, out normal, out _);
+
+    /// <summary>As <see cref="Overlap(Vector2[], Vector2[], out Vector2)"/>, with how deep they overlap along the normal (px).</summary>
+    public static bool Overlap(Vector2[] a, Vector2[] b, out Vector2 normal, out float depth)
     {
         normal = Vector2.Zero;
+        depth = 0;
         float least = float.MaxValue;
         foreach (var poly in new[] { a, b })
             for (int i = 0; i < poly.Length; i++)
@@ -248,6 +252,7 @@ public static class Geometry
             }
         // Point the normal from b (the solid) toward a (the car).
         if (Vector2.Dot(Centre(a) - Centre(b), normal) < 0) normal = -normal;
+        depth = least;
         return true;
     }
 

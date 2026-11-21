@@ -85,6 +85,15 @@ public sealed class Car
     public Vector2 Advance(Drive drive, double dt)
     {
         if (dt <= 0) return Vector2.Zero;
+        if (Spinning) return AdvanceSpinning(dt);
+        // WI-020: a wobble turns the nose by itself for a moment; the driver keeps the wheel.
+        if (YawRadS != 0)
+        {
+            TurnTo(WrapAngle(Heading + (float)(YawRadS * dt)));
+            YawRadS *= Math.Exp(-WobbleDecayPerS * dt);
+            if (Math.Abs(YawRadS) < 0.05) YawRadS = 0;
+        }
+        _looseFor = Math.Max(0, _looseFor - dt);
         double v = SpeedMs;
         if (drive.Throttle) v = v < 0 ? Math.Min(0, v + BrakeMs2 * dt) : Math.Min(TopSpeedMs, v + AccelerationMs2 * dt);
         else if (drive.Brake) v = v > 0 ? Math.Max(0, v - BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - AccelerationMs2 * 0.5 * dt);
@@ -102,12 +111,14 @@ public sealed class Car
 
         // The tyres: pull the slide back toward the nose, up to the grip; most of what they take becomes forward speed.
         double grip = (drive.Throttle && steering ? GripPowerMs2 : GripMs2) * Ground.Grip * dt;
+        if (Loose) grip = LooseGripMs2 * dt;
         double take = Math.Min(Math.Abs(SlipMs), grip);
         SlipMs -= Math.Sign(SlipMs) * take;
-        // A drift, not a spin: past the largest angle the tyres take the rest too (D2).
+        // A drift, not a spin: past the largest angle the tyres take the rest too (D2). A shoved car (WI-020) is thrown
+        // sideways instead: no cap, and what the tyres take is scrubbed, never turned into forward speed.
         double maxSlip = Math.Tan(MathHelper.ToRadians((float)Ground.MaxDriftDeg)) * Math.Abs(SpeedMs);
-        if (Math.Abs(SlipMs) > maxSlip) { take += Math.Abs(SlipMs) - maxSlip; SlipMs = Math.Sign(SlipMs) * maxSlip; }
-        if (SpeedMs != 0) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, TopSpeedMs);
+        if (!Loose && Math.Abs(SlipMs) > maxSlip) { take += Math.Abs(SlipMs) - maxSlip; SlipMs = Math.Sign(SlipMs) * maxSlip; }
+        if (SpeedMs != 0 && !Loose) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, TopSpeedMs);
         // Nose and slide together never pass the top speed.
         double total = Math.Sqrt(SpeedMs * SpeedMs + SlipMs * SlipMs);
         if (total > TopSpeedMs) { SpeedMs *= TopSpeedMs / total; SlipMs *= TopSpeedMs / total; }
@@ -144,6 +155,65 @@ public sealed class Car
         HeightPx = heightPx;
         SpeedMs = 0;
         SlipMs = 0;
+        YawRadS = 0;
+        Spinning = false;
+        _looseFor = 0;
+    }
+
+    // ---- WI-020 contact: pushed, wobbling, spun out ----
+
+    public const double WobbleDecayPerS = 5.0;     // a wobble's own turning dies away in well under a second
+    public const double SpinFrictionMs2 = 14.0;    // a spinning car skids to a stop (the vision: "regained by braking to a stop")
+    public const double SpinDecayPerS = 0.7;       // and its spin slows as it goes
+    public const double LooseSeconds = 0.5;        // after a shove the tyres let the car be thrown, this long
+    public const double LooseGripMs2 = 8.0;        // a shoved car skids sideways as tyres really do (~0.8 g), not with the arcade grip that holds a drift
+
+    private double _looseFor;
+
+    /// <summary>The nose turning by itself, rad/s, clockwise positive: a wobble (the driver still steers) or a spin.</summary>
+    public double YawRadS { get; private set; }
+
+    /// <summary>Out of control (the vision's spin-out): no throttle, brake or steering until the car has skidded to a stop.</summary>
+    public bool Spinning { get; private set; }
+
+    /// <summary>Just shoved: thrown with the push, not held by the tyres (<see cref="LooseSeconds"/>).</summary>
+    public bool Loose => _looseFor > 0;
+
+    /// <summary>A change of motion from a contact, m/s in world axes (y down).</summary>
+    public void Push(Vector2 deltaMs)
+    {
+        var v = Velocity + deltaMs;
+        SpeedMs = Vector2.Dot(v, Forward);
+        SlipMs = Vector2.Dot(v, Right);
+        _looseFor = LooseSeconds;
+    }
+
+    /// <summary>A contact's turn on the car: <paramref name="spinOut"/> takes the wheel away until it stops; otherwise a wobble.</summary>
+    public void Kick(double yawRadS, bool spinOut)
+    {
+        YawRadS += yawRadS;
+        if (spinOut) Spinning = true;
+    }
+
+    /// <summary>Spinning: the motion keeps its world direction and skids down, the nose turns by itself; once stopped the
+    /// driver has the car again.</summary>
+    private Vector2 AdvanceSpinning(double dt)
+    {
+        var v = Velocity;
+        double speed = v.Length();
+        double slower = Math.Max(0, speed - SpinFrictionMs2 * Ground.Grip * dt);
+        v = speed > 0 ? v * (float)(slower / speed) : Vector2.Zero;
+        Heading = WrapAngle(Heading + (float)(YawRadS * dt));
+        YawRadS *= Math.Exp(-SpinDecayPerS * dt);
+        SpeedMs = Vector2.Dot(v, Forward);
+        SlipMs = Vector2.Dot(v, Right);
+        if (slower < 0.3)
+        {
+            SpeedMs = 0; SlipMs = 0; YawRadS = 0;
+            Spinning = false;
+            return Vector2.Zero;
+        }
+        return v * (float)(_pxPerMetre * dt);
     }
 
     private static float WrapAngle(float a)
