@@ -24,6 +24,9 @@ public sealed class SpyGame : Game
     private (string SourceFile, Rectangle Rect)? _targetSprite;
     private Route? _route;
     private Chase? _chase;
+    /// <summary>FEAT-009 S4: the stage's logic (null: the world is not marked for the game), and where the player starts.</summary>
+    private StageLogic? _logic;
+    private (Vector2 At, float Heading, float HeightPx) _homePose;
     private bool _againHeld;
     /// <summary>WI-017: the camera zooms out with speed.</summary>
     private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
@@ -66,20 +69,33 @@ public sealed class SpyGame : Game
         _view = new WorldView(GraphicsDevice, _spriteBatch, stage, _options.Themes);
         _carSprite = SpriteOf(stage.World, HeroAssetName);
         _targetSprite = SpriteOf(stage.World, TargetAssetName);
-        var (at, heading) = StartOf(stage.World, _view.RoadScene);
+        // FEAT-009 S4: the stage's logic, when the world is marked for the game: the Hero's car is the player's, the Runners'
+        // are the targets; neither is drawn nor solid as a parked car.
+        _logic = StageLogic.Read(stage.World, stage.Themes, _options.Themes, _view.RoadScene, _view.Placed.Pictures, stage.Problems);
+        if (_logic is not null) _view.Moving.UnionWith(_logic.Moving);
+        var (at, heading) = _logic?.Hero is { } hero ? hero.Pose : StartOf(stage.World, _view.RoadScene);
         _start = at;
         _car = new Car(at, heading, stage.World.Project.EffectivePxPerMetre);
         // WI-016: the world as the car feels it, the car's box, and the start it sinks back to.
-        _drive = new DriveWorld(stage.World, _view.RoadScene, _view.Placed, _view.PictureSize);
-        _body = BodyOf(stage.World, HeroAssetName, _carSprite?.Rect);
+        _drive = new DriveWorld(stage.World, _view.RoadScene, _view.Placed, _view.PictureSize, _view.Moving);
+        _body = _logic?.Hero?.Body ?? BodyOf(stage.World, HeroAssetName, _carSprite?.Rect);
         _car.HeightPx = _view.HeightPxAt(at);
         _startPose = (at, heading, _car.HeightPx);
-        // WI-020: the chase, when the stage has a road for the target to flee along.
-        _route = Route.Of(stage.World, _view.RoadScene);
+        _homePose = _startPose;
+        // WI-020: the chase, when the stage has a road for the target to flee along; S4: when its logic has a Runner with a route
+        // (marked and with none, the player drives free from where the Hero stands).
+        _route = _logic is null ? Route.Of(stage.World, _view.RoadScene) : _logic.Fleeing.FirstOrDefault()?.Route;
         if (_route is not null) NewChase();
         Window.Title = $"Spy On Wheels - {stage.World.Project.Name}" + (stage.Problems.Count == 0 ? "" : $" ({stage.Problems.Count} problems)");
         _report.AddRange(stage.Describe());
-        _report.Add($"hero: {(_carSprite is { } s ? $"{HeroAssetName} {s.Rect.Width}x{s.Rect.Height} px from {s.SourceFile}" : "MISSING - drawn as a box")}");
+        if (_logic is { } l)
+        {
+            _report.Add($"logic: mission {l.Mission ?? "(default)"}; hero {(l.Hero is { } h ? FormattableString.Invariant($"{h.Name} at ({h.Pose.At.X:0}, {h.Pose.At.Y:0}) px facing {MathHelper.ToDegrees(h.Pose.Heading):0} deg, box {h.Body.LengthPx / stage.World.Project.EffectivePxPerMetre:0.00} x {h.Body.WidthPx / stage.World.Project.EffectivePxPerMetre:0.00} m") : "NONE")}");
+            foreach (var r in l.Runners)
+                _report.Add(FormattableString.Invariant($"logic: runner {r.Car.Name} at ({r.Car.Pose.At.X:0}, {r.Car.Pose.At.Y:0}) px: {(r.Route is { } rt ? $"route {rt.Length / stage.World.Project.EffectivePxPerMetre:0} m{(r.Loop ? " (loop)" : "")}" : "no route, parked")}"));
+        }
+        _report.Add(_logic?.Hero is { } lh ? $"hero: {lh.Name}, the placed vehicle picture {Path.GetFileName(lh.Picture.File)}"
+            : $"hero: {(_carSprite is { } s ? $"{HeroAssetName} {s.Rect.Width}x{s.Rect.Height} px from {s.SourceFile}" : "MISSING - drawn as a box")}");
         _report.Add(FormattableString.Invariant($"start: ({at.X:0}, {at.Y:0}) px, heading {MathHelper.ToDegrees(heading):0} deg"));
         _report.Add(FormattableString.Invariant($"world as the car feels it: {_drive.SolidCount} solids, {_drive.DeckCount} bridge decks; car box {_body.LengthPx / stage.World.Project.EffectivePxPerMetre:0.00} x {_body.WidthPx / stage.World.Project.EffectivePxPerMetre:0.00} m"));
     }
@@ -112,12 +128,22 @@ public sealed class SpyGame : Game
     /// <summary>WI-020: a fresh chase on the stage's route: the player behind, the target ahead, full health.</summary>
     private void NewChase()
     {
-        var world = _view.Stage.World;
-        _chase = new Chase(_route!, _drive, world.Project.EffectivePxPerMetre, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect),
-            _view.HeightPxAt, world.Project.EffectiveCellHeight);
+        _chase = MakeChase();
         _car = _chase.Player;
         _startPose = _chase.PlayerStart;
         _start = _chase.PlayerStart.At;
+    }
+
+    /// <summary>A fresh chase: FEAT-009 S4 from the stage's logic (the player where the Hero stands, every Runner with a route a
+    /// target where it stands), else WI-020's on the oldest road's route.</summary>
+    private Chase MakeChase()
+    {
+        var world = _view.Stage.World;
+        double ppm = world.Project.EffectivePxPerMetre;
+        if (_logic is { } l && l.Fleeing.Any())
+            return new Chase(_drive, ppm, _homePose, _body, l.Fleeing.Select(r => new ChaseTarget(r.Car.Name, r.Route!, r.Loop,
+                (r.Car.Pose.At, r.Car.Pose.Heading, _view.HeightPxAt(r.Car.Pose.At)), r.Car.Body)).ToList(), world.Project.EffectiveCellHeight);
+        return new Chase(_route!, _drive, ppm, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect), _view.HeightPxAt, world.Project.EffectiveCellHeight);
     }
 
     /// <summary>A car's picture: the world's sprite named <paramref name="name"/>, its poster frame.</summary>
@@ -185,13 +211,23 @@ public sealed class SpyGame : Game
         {
             bool In(float h) => h >= band.From && h < band.Below;
             if (_chase is not null)
+                for (int i = 0; i < _chase.Targets.Count; i++)
+                {
+                    var t = _chase.Targets[i];
+                    if (!t.Loop)
+                    {
+                        float bh = _view.HeightPxAt(t.Route.PointAt(t.BorderAlong));
+                        if (In(bh)) DrawBorder(camera, viewport, t.Route, t.BorderAlong, bh);
+                    }
+                    if (!In(t.Car.HeightPx)) continue;
+                    if (_logic is { } l && l.Fleeing.ElementAtOrDefault(i) is { } runner) DrawPictureCar(camera, viewport, t.Car, runner.Car.Picture);
+                    else DrawCar(camera, viewport, t.Car, _targetSprite, Color.IndianRed);
+                }
+            if (In(carHeight))
             {
-                var b = _chase.Route.PointAt(_chase.BorderAlong);
-                float bh = _view.HeightPxAt(b);
-                if (In(bh)) DrawBorder(camera, viewport, bh);
-                if (In(_chase.Target.HeightPx)) DrawCar(camera, viewport, _chase.Target, _targetSprite, Color.IndianRed);
+                if (_logic?.Hero is { } hero) DrawPictureCar(camera, viewport, _car, hero.Picture);
+                else DrawCar(camera, viewport, _car, _carSprite, Color.Silver);
             }
-            if (In(carHeight)) DrawCar(camera, viewport, _car, _carSprite, Color.Silver);
         });
         if (_chase is not null) DrawHud(viewport);
         base.Draw(gameTime);
@@ -220,13 +256,25 @@ public sealed class SpyGame : Game
         _spriteBatch.End();
     }
 
-    /// <summary>WI-020 D4: the border, a red and white chequered band across the route.</summary>
-    private void DrawBorder(in WorldCamera camera, Viewport viewport, float heightPx)
+    /// <summary>FEAT-009 S4: a car drawn from its theme picture (a placed vehicle's), about its centre, at the picture's size.</summary>
+    private void DrawPictureCar(in WorldCamera camera, Viewport viewport, Car car, PlacedPicture picture)
+    {
+        Texture2D texture;
+        try { texture = _view.ThemePicture(picture.File); }
+        catch (Exception) { DrawCar(camera, viewport, car, null, Color.Silver); return; }
+        _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.LinearClamp,
+            transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
+        var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height);
+        _spriteBatch.Draw(texture, car.Position, null, Color.White, car.Heading, new Vector2(texture.Width / 2f, texture.Height / 2f), scale, SpriteEffects.None, 0f);
+        _spriteBatch.End();
+    }
+
+    /// <summary>WI-020 D4: the border, a red and white chequered band across a target's route.</summary>
+    private void DrawBorder(in WorldCamera camera, Viewport viewport, Route route, float borderAlong, float heightPx)
     {
         _pixel ??= MakePixel();
-        var c = _chase!;
-        var at = c.Route.PointAt(c.BorderAlong);
-        float heading = c.Route.HeadingAt(c.BorderAlong);
+        var at = route.PointAt(borderAlong);
+        float heading = route.HeadingAt(borderAlong);
         var right = new Vector2(MathF.Cos(heading), MathF.Sin(heading));
         var fwd = new Vector2(MathF.Sin(heading), -MathF.Cos(heading));
         float ppm = (float)_view.Stage.World.Project.EffectivePxPerMetre, sq = ppm;   // 1 m squares
@@ -252,8 +300,11 @@ public sealed class SpyGame : Game
         float share = (float)(c.Health / Chase.MaxHealth);
         _spriteBatch.Draw(_pixel, new Rectangle(bar.X, bar.Y, (int)(bar.Width * share), bar.Height), share > 0.5f ? Color.LimeGreen : share > 0.25f ? Color.Orange : Color.Red);
         PixelFont.Draw(_spriteBatch, _pixel, $"HEALTH {c.Health:0}", new Vector2(bar.Right + 12, bar.Y + 1), 3, Color.White);
-        float toBorder = (c.BorderAlong - c.Runner.Along) / (float)_view.Stage.World.Project.EffectivePxPerMetre;
-        PixelFont.Draw(_spriteBatch, _pixel, $"TARGET {c.GapMetres:0} M   BORDER {Math.Max(0, toBorder):0} M   {c.Player.SpeedMs * 3.6:0} KM/H", new Vector2(20, 50), 3, Color.White);
+        // S4: the nearest border of a target still fleeing; none when every one left drives a loop.
+        double toBorder = c.Fleeing.Select(t => t.ToBorderPx).DefaultIfEmpty(double.PositiveInfinity).Min() / _view.Stage.World.Project.EffectivePxPerMetre;
+        string border = double.IsInfinity(toBorder) ? "" : $"BORDER {Math.Max(0, toBorder):0} M   ";
+        string stopped = c.Targets.Count > 1 ? $"STOPPED {c.Targets.Count(t => t.Stopped)}/{c.Targets.Count}   " : "";
+        PixelFont.Draw(_spriteBatch, _pixel, $"TARGET {c.GapMetres:0} M   {border}{stopped}{c.Player.SpeedMs * 3.6:0} KM/H", new Vector2(20, 50), 3, Color.White);
         if (c.Contacts.Count > 0)
         {
             var (at, hit) = c.Contacts[^1];
@@ -265,7 +316,8 @@ public sealed class SpyGame : Game
             }
         }
         if (c.State == ChaseState.Running && c.Clock < 3)
-            Centre("STOP THE PICKUP BEFORE THE BORDER", viewport.Height / 3f, 5, Color.White);
+            Centre(c.Targets.Count == 1 ? $"STOP THE {c.Targets[0].Name.ToUpperInvariant()} BEFORE THE BORDER" : $"STOP ALL {c.Targets.Count} BEFORE THEY GET AWAY",
+                viewport.Height / 3f, 5, Color.White);
         if (c.State != ChaseState.Running)
         {
             Centre(c.Outcome ?? "", viewport.Height / 2f - 40, 10, c.State == ChaseState.Won ? Color.LimeGreen : Color.Red);
@@ -371,15 +423,17 @@ public sealed class SpyGame : Game
         {
             var world = _view.Stage.World;
             _report.Add(FormattableString.Invariant($"route: {_route.Length / ppm:0} m, {_route.Points.Count} points, from ({_route.Points[0].X / world.Project.CellSize:0.0}, {_route.Points[0].Y / world.Project.CellSize:0.0}) to ({_route.Points[^1].X / world.Project.CellSize:0.0}, {_route.Points[^1].Y / world.Project.CellSize:0.0}) cells"));
-            var alone = new Chase(_route, _drive, ppm, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect), _view.HeightPxAt, world.Project.EffectiveCellHeight);
-            _report.Add(FormattableString.Invariant($"border at {alone.BorderAlong / ppm:0} m along; target starts {(alone.Runner.Along) / ppm:0} m along; target {(_targetSprite is null ? "MISSING - a box" : TargetAssetName)}"));
-            float worstOff = 0; double offRoad = 0, topKmh = 0, lastOff = 0;
+            var alone = MakeChase();   // S4: from the logic when marked
+            _report.Add(FormattableString.Invariant($"border at {alone.BorderAlong / ppm:0} m along; target starts {(alone.Runner.Along) / ppm:0} m along; target {(_logic is not null ? alone.Targets[0].Name : _targetSprite is null ? "MISSING - a box" : TargetAssetName)}"));
+            float worstOff = 0; double offRoad = 0, topKmh = 0, lastOff = 0, joinedAt = -1;   // S4: a Runner placed beside its route is off its line until it joins it
             var offAt = new List<string>();
             var parked = new Drive(false, false, 0);
             while (alone.State == ChaseState.Running && alone.Clock < 120)
             {
                 alone.Step(parked, 1 / 60.0);
-                worstOff = MathF.Max(worstOff, Vector2.Distance(alone.Target.Position, _route.PointAt(alone.Runner.Along)));
+                float offLine = Vector2.Distance(alone.Target.Position, alone.Route.PointAt(alone.Runner.Along));
+                if (joinedAt < 0 && offLine < 2 * ppm && Math.Abs(MathHelper.WrapAngle(alone.Target.Heading - alone.Route.HeadingAt(alone.Runner.Along))) < 0.4f) joinedAt = alone.Clock;   // on it, and facing along it
+                if (joinedAt >= 0) worstOff = MathF.Max(worstOff, offLine);
                 if (_drive.TractionAt(alone.Target.Position, alone.Target.HeightPx) != Traction.Asphalt)
                 {
                     if (offRoad == 0 || alone.Clock - lastOff > 0.5) offAt.Add(FormattableString.Invariant($"{alone.Runner.Along / ppm:0} m ({alone.Target.SpeedMs * 3.6:0} km/h)"));
@@ -387,17 +441,20 @@ public sealed class SpyGame : Game
                     offRoad += 1 / 60.0;
                 }
                 topKmh = Math.Max(topKmh, alone.Target.SpeedMs * 3.6);
+                // S4: where the lone target is every 5 s (a stage whose runner stalls says where and on what).
+                if (Math.Abs(alone.Clock % 5) < 0.5 / 60.0 && alone.Clock > 0.1)
+                    _report.Add(FormattableString.Invariant($"  target at {alone.Clock:0} s: {alone.Runner.Along / ppm:0} m along, {alone.Target.SpeedMs * 3.6:0} km/h, ({alone.Target.Position.X / world.Project.CellSize:0.0}, {alone.Target.Position.Y / world.Project.CellSize:0.0}) cells, height {alone.Target.HeightPx:0}, aim ({alone.Runner.Aim.X / world.Project.CellSize:0.0}, {alone.Runner.Aim.Y / world.Project.CellSize:0.0}), on {_drive.Describe(alone.Target.Position)}"));
             }
-            runnerOk = alone.Outcome == "IT GOT AWAY" && worstOff / ppm < 4;
-            _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, furthest off its line {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s => {(runnerOk ? "ok" : "BAD")}"));
+            runnerOk = alone.Outcome == "IT GOT AWAY" && joinedAt >= 0 && worstOff / ppm < 4;
+            _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, on its line after {joinedAt:0.0} s, furthest off it since {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s => {(runnerOk ? "ok" : "BAD")}"));
             if (offAt.Count > 0) _report.Add("  left the road at: " + string.Join(", ", offAt));
             // His first drive: after a restart the car went through everything and the pickup could be stopped only once.
             // Three chases in a row on the island, a rammer at the wheel: how each ends, and frames either car sat "caught"
             // (its box not fitting where it is, so the driving lets it pass through everything).
-            var tbody = BodyOf(world, TargetAssetName, _targetSprite?.Rect);
+            var tbody = MakeChase().TargetBody;
             for (int run = 0; run <= 3; run++)   // run 0: straight at the target from the start, into the first cliff (where the scrape caught it)
             {
-                var c = new Chase(_route, _drive, ppm, _body, tbody, _view.HeightPxAt, world.Project.EffectiveCellHeight);
+                var c = MakeChase();
                 bool startFits = Driving.Fits(c.Player.Position, c.Player.Heading, c.Player.HeightPx, _drive, _body, out _, out _)
                     && Driving.Fits(c.Target.Position, c.Target.Heading, c.Target.HeightPx, _drive, tbody, out _, out _);
                 int caughtP = 0, caughtT = 0;

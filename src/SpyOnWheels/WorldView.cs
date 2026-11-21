@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -59,6 +60,12 @@ public sealed class WorldView : IDisposable
 
     public Texture2D Picture(string sourceFile) => _pictures.Get(sourceFile);
 
+    /// <summary>FEAT-009 S4: a theme picture (a vehicle's), by the absolute file the placed scene names.</summary>
+    public Texture2D ThemePicture(string file) => _themePictures.Get(file);
+
+    /// <summary>FEAT-009 S4: placed vehicles the game moves itself (the Hero, the Runners): not drawn as parked.</summary>
+    public HashSet<string> Moving { get; } = new(StringComparer.Ordinal);
+
     public (int Width, int Height)? PictureSize(string sourceFile) => _pictures.TryGetSize(sourceFile);
 
     /// <summary>One frame of the world; <paramref name="movers"/> draws the game's moving things in each height band.</summary>
@@ -73,6 +80,8 @@ public sealed class WorldView : IDisposable
         {
             SpriteScene.Draw(_spriteBatch, eye, viewport, order, band, _ => Color.White,
                 p => SpriteScene.Resolve(world, p, _pictures.TryGetSize, clock), _pictures.Get);
+            // FEAT-009 S4: parked vehicles, drawn as Xorpheus draws them.
+            PlacedPictures.Draw(_spriteBatch, eye, viewport, Placed.Pictures.Where(p => !Moving.Contains(p.Id)), band, _themePictures.Get);
             movers(band);
         });
     }

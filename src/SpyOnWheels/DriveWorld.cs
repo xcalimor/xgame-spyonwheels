@@ -52,7 +52,9 @@ public sealed class DriveWorld : IDriveWorld
     private readonly Dictionary<(int, int), List<PlacedThings.RoadSample>> _paved = new();
     private readonly List<(Vector2[] Shape, float BasePx, float TopPx)> _solids = new();
 
-    public DriveWorld(WorldFile world, RoadSceneBuilder roads, PlacedSceneBuilder placed, Func<string, (int Width, int Height)?> pictureSize)
+    /// <param name="moving">FEAT-009 S4: placed vehicles the game drives (the Hero, the Runners): not solid where they were placed.</param>
+    public DriveWorld(WorldFile world, RoadSceneBuilder roads, PlacedSceneBuilder placed, Func<string, (int Width, int Height)?> pictureSize,
+        ISet<string>? moving = null)
     {
         _world = world;
         _ground = new GroundSurface(world);
@@ -79,6 +81,11 @@ public sealed class DriveWorld : IDriveWorld
 
         foreach (var box in placed.Boxes.Values.Where(b => b.Footprint.Length >= 3))
             _solids.Add((box.Footprint, box.BasePx, box.TopPx));
+        // FEAT-009 S4: a parked vehicle is solid, as the editor's red rule reads it (an unmarked car is the game's to decide:
+        // parked, for now).
+        foreach (var pic in placed.Pictures)
+            if (pic.Solid is { Length: >= 3 } shape && moving?.Contains(pic.Id) != true)
+                _solids.Add((shape, pic.BasePx, pic.TopPx));
         foreach (var p in world.Placements)
             if (SpriteSolid(world, p, pictureSize) is { } shape)
                 _solids.Add((shape, p.ElevationAt(world.Project.EffectiveCellHeight) * _levelPx, float.PositiveInfinity));
