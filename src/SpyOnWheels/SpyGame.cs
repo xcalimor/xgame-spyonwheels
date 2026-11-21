@@ -391,7 +391,41 @@ public sealed class SpyGame : Game
             runnerOk = alone.Outcome == "IT GOT AWAY" && worstOff / ppm < 4;
             _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, furthest off its line {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s => {(runnerOk ? "ok" : "BAD")}"));
             if (offAt.Count > 0) _report.Add("  left the road at: " + string.Join(", ", offAt));
-            _report.Add(FormattableString.Invariant($"the scripted drive's chase: {_chase?.Outcome ?? "running"} at {_chase?.Clock:0.0} s; contacts: {string.Join("; ", _chase?.Contacts.Select(h => FormattableString.Invariant($"{h.At:0.0} s {h.Result.Kind} {h.Result.ClosingMs * 3.6:0} km/h spin {h.Result.SpunOut} -{h.Result.Damage:0}")) ?? Array.Empty<string>())}"));
+            // His first drive: after a restart the car went through everything and the pickup could be stopped only once.
+            // Three chases in a row on the island, a rammer at the wheel: how each ends, and frames either car sat "caught"
+            // (its box not fitting where it is, so the driving lets it pass through everything).
+            var tbody = BodyOf(world, TargetAssetName, _targetSprite?.Rect);
+            for (int run = 0; run <= 3; run++)   // run 0: straight at the target from the start, into the first cliff (where the scrape caught it)
+            {
+                var c = new Chase(_route, _drive, ppm, _body, tbody, _view.HeightPxAt, world.Project.EffectiveCellHeight);
+                bool startFits = Driving.Fits(c.Player.Position, c.Player.Heading, c.Player.HeightPx, _drive, _body, out _, out _)
+                    && Driving.Fits(c.Target.Position, c.Target.Heading, c.Target.HeightPx, _drive, tbody, out _, out _);
+                int caughtP = 0, caughtT = 0;
+                // The rammer: the target's own route steering, flat out where that would not brake, and straight at the
+                // target once within 12 m of it.
+                // Started 10 m behind the target (the stops are what is checked here; the catching is his drive to judge).
+                float behind = run == 0 ? _route.Project(c.Player.Position) : c.Runner.Along - (float)(10 * ppm);
+                if (run > 0) c.Player.Reset(_route.PointAt(behind), _route.HeadingAt(behind), _view.HeightPxAt(_route.PointAt(behind)));
+                var pilot = new Runner(_route, ppm, behind);
+                while (c.State == ChaseState.Running && c.Clock < 90)
+                {
+                    var follow = pilot.DriveFor(c.Player);
+                    var to = c.Target.Position - c.Player.Position;
+                    float off = MathHelper.WrapAngle(MathF.Atan2(to.X, -to.Y) - c.Player.Heading);
+                    bool close = run == 0 || to.Length() < 12 * ppm;
+                    c.Step(close ? new Drive(true, false, Math.Clamp(off * 3, -1, 1)) : new Drive(true, follow.Brake && c.Player.SpeedMs > Runner.CruiseMs * (1 - Runner.BendSlowdown) + 4, follow.Steer), 1 / 60.0);
+                    if (!Driving.Fits(c.Player.Position, c.Player.Heading, c.Player.HeightPx, _drive, _body, out _, out _))
+                    {
+                        if (caughtP++ == 0)
+                            _report.Add(FormattableString.Invariant($"  first caught at {c.Clock:0.00} s: ({c.Player.Position.X / world.Project.CellSize:0.00}, {c.Player.Position.Y / world.Project.CellSize:0.00}) cells, heading {MathHelper.ToDegrees(c.Player.Heading):0}, {c.Player.SpeedMs * 3.6:0} km/h slip {c.Player.SlipMs:0.0}, height {c.Player.HeightPx:0}, here {_drive.Describe(c.Player.Position)}"));
+                    }
+                    if (!Driving.Fits(c.Target.Position, c.Target.Heading, c.Target.HeightPx, _drive, tbody, out _, out _)) caughtT++;
+                }
+                bool clean = startFits && caughtP == 0 && caughtT == 0;
+                runnerOk &= clean;
+                _report.Add(FormattableString.Invariant($"rammer run {run}: {c.Outcome ?? "running"} at {c.Clock:0.0} s, {c.Contacts.Count} contacts, health {c.Health:0}, you {pilot.Along / ppm:0} m along at {c.Player.SpeedMs * 3.6:0} km/h, gap {c.GapMetres:0} m; starts fit {startFits}; caught frames you {caughtP}, target {caughtT} => {(clean ? "ok" : "BAD")}"));
+            }
+            _report.Add(FormattableString.Invariant($"the scripted drive's chase:{_chase?.Outcome ?? "running"} at {_chase?.Clock:0.0} s; contacts: {string.Join("; ", _chase?.Contacts.Select(h => FormattableString.Invariant($"{h.At:0.0} s {h.Result.Kind} {h.Result.ClosingMs * 3.6:0} km/h spin {h.Result.SpunOut} -{h.Result.Damage:0}")) ?? Array.Empty<string>())}"));
         }
         _report.Insert(0, metres > 10 && _view.Stage.Problems.Count == 0 && _carSprite is not null && runnerOk ? "PASS" : "FAIL");
         File.WriteAllLines(Path.Combine(dir, "skeleton-report.txt"), _report);

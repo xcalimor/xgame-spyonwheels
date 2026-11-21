@@ -65,7 +65,10 @@ public static class Driving
                 var along = Vector2.Normalize(t) * Math.Sign(car.SpeedMs == 0 ? 1 : car.SpeedMs);
                 float target = MathF.Atan2(along.X, -along.Y);
                 float diff = MathF.IEEERemainder(target - car.Heading, MathF.Tau);
-                if (MathF.Abs(diff) < MathHelper.PiOver2 * 0.9f)
+                // Only a turn that fits: swinging the nose against a cliff would put a corner into it, and a car caught
+                // inside something moves freely through everything (his WI-020 drive: "the car goes through everything").
+                if (MathF.Abs(diff) < MathHelper.PiOver2 * 0.9f
+                    && Fits(car.Position, car.Heading + diff * AlignShare, car.HeightPx, world, body, out _, out _))
                     car.TurnTo(car.Heading + diff * AlignShare);
                 result = DriveEvent.Scraped;
                 moved = true;

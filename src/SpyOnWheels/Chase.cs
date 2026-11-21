@@ -91,9 +91,7 @@ public sealed class Chase
         if (Math.Abs(Player.HeightPx - Target.HeightPx) <= _levelTolerancePx
             && Geometry.Overlap(PlayerBody.Shape(Player.Position, Player.Heading), TargetBody.Shape(Target.Position, Target.Heading), out var normal, out float depth))
         {
-            // Apart again, half each, along the contact line (normal: target → player).
-            Player.MoveTo(Player.Position + normal * (depth / 2 + 1));
-            Target.MoveTo(Target.Position - normal * (depth / 2 + 1));
+            Part(normal, depth + 2);
             if (_cooldown <= 0 && Contact.Resolve(Player, Target, normal) is { } hit)
             {
                 _cooldown = ContactCooldownS;
@@ -107,6 +105,27 @@ public sealed class Chase
         // Stopped: it was spun out and has skidded to a standstill (D5).
         if (targetWasSpinning && !Target.Spinning) { End(ChaseState.Won, "STOPPED"); return; }
         if (Runner.Along >= BorderAlong) End(ChaseState.Lost, "IT GOT AWAY");
+    }
+
+    /// <summary>
+    /// The two cars apart again along the contact line (<paramref name="normal"/>: target → player), half each, but only into
+    /// room the car fits in: a car parted into a wall or over an edge would be "caught", and the driving lets a caught car
+    /// move freely through everything until it is out (his first drive: the car went through everything). A car with no
+    /// room stays put and the other takes the whole gap; with room for neither, the push of the contact parts them.
+    /// </summary>
+    private void Part(Vector2 normal, float gapPx)
+    {
+        bool TryMove(Car car, CarBody body, Vector2 by)
+        {
+            if (!Driving.Fits(car.Position + by, car.Heading, car.HeightPx, _world, body, out float h, out _)) return false;
+            car.MoveTo(car.Position + by);
+            car.HeightPx = h;
+            return true;
+        }
+        bool playerMoved = TryMove(Player, PlayerBody, normal * (gapPx / 2));
+        bool targetMoved = TryMove(Target, TargetBody, -normal * (gapPx / 2));
+        if (!playerMoved && targetMoved) TryMove(Target, TargetBody, -normal * (gapPx / 2));
+        else if (playerMoved && !targetMoved) TryMove(Player, PlayerBody, normal * (gapPx / 2));
     }
 
     private void End(ChaseState state, string outcome)

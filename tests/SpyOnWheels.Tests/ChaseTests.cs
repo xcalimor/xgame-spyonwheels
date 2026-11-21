@@ -169,6 +169,37 @@ public class ChaseTests
         Assert.True(Damage(10, 30) > Damage(30, 10));
     }
 
+    /// <summary>Open flat asphalt with a wall: everything west of <see cref="WallX"/> px is solid.</summary>
+    private sealed class Walled : IDriveWorld
+    {
+        public float WallX;
+        public Surface? SurfaceNear(Vector2 at, float heightPx) => new Surface(0, SurfaceKind.Ground);
+        public bool HitsSolid(Vector2[] shape, float heightPx, out Vector2 normal)
+        {
+            normal = Vector2.UnitX;
+            return shape.Any(p => p.X < WallX);
+        }
+    }
+
+    [Fact]
+    public void Cars_pushed_apart_are_never_pushed_into_a_wall()
+    {
+        // Your report (2026-11-21): the car went through everything. Two cars side by side, yours against a wall on its
+        // left, overlapping the target on its right: parting them must not put yours inside the wall, where the driving
+        // lets a car that is "caught" move freely through everything until it is out.
+        var wall = new Walled();
+        var chase = new Chase(North(400), wall, Ppm, Body, Body, _ => 0f, Level);
+        float half = Body.WidthPx / 2;
+        wall.WallX = chase.Player.Position.X - half - 2;   // 2 px of air between your car and the wall
+        chase.Target.Reset(chase.Player.Position + new Vector2(Body.WidthPx - 20, 0), chase.Player.Heading, 0);   // 20 px overlap
+        chase.Step(new Drive(false, false, 0), Dt);
+        Assert.True(Driving.Fits(chase.Player.Position, chase.Player.Heading, 0, wall, Body, out _, out _), "your car was pushed into the wall");
+        Assert.True(Driving.Fits(chase.Target.Position, chase.Target.Heading, 0, wall, Body, out _, out _), "the target was pushed into the wall");
+        // And steering into the wall afterwards, it stays out.
+        for (int i = 0; i < 120; i++) chase.Step(new Drive(true, false, -1), Dt);
+        Assert.True(chase.Player.Position.X - half >= wall.WallX - 1, "your car drove into the wall");
+    }
+
     // ---- the Stop task ----
 
     [Fact]
