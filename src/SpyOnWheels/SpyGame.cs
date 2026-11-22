@@ -28,6 +28,11 @@ public sealed class SpyGame : Game
     private StageLogic? _logic;
     private (Vector2 At, float Heading, float HeightPx) _homePose;
     private bool _againHeld;
+    /// <summary>WI-026: traffic: its trips, its looks (a placed picture per look, when the stage has one), on or off (T).</summary>
+    private LaneTrips? _trips;
+    private readonly PlacedPicture?[] _looks = new PlacedPicture?[2];
+    private bool _trafficOn = true, _trafficHeld;
+    private int _trafficSeed = 1;
     /// <summary>WI-017: the camera zooms out with speed.</summary>
     private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
 
@@ -85,6 +90,7 @@ public sealed class SpyGame : Game
         // WI-020: the chase, when the stage has a road for the target to flee along; S4: when its logic has a Runner with a route
         // (marked and with none, the player drives free from where the Hero stands).
         _route = _logic is null ? Route.Of(stage.World, _view.RoadScene) : _logic.Fleeing.FirstOrDefault()?.Route;
+        _trips = MakeTrips(stage.World);
         if (_route is not null) NewChase();
         Window.Title = $"Spy On Wheels - {stage.World.Project.Name}" + (stage.Problems.Count == 0 ? "" : $" ({stage.Problems.Count} problems)");
         _report.AddRange(stage.Describe());
@@ -129,6 +135,7 @@ public sealed class SpyGame : Game
     private void NewChase()
     {
         _chase = MakeChase();
+        if (_trafficOn && _trips is { Empty: false }) _chase.UseTraffic(_trips, Traffic.Cars, _options.Shots is not null ? _trafficSeed : Environment.TickCount);
         _car = _chase.Player;
         _startPose = _chase.PlayerStart;
         _start = _chase.PlayerStart.At;
@@ -144,6 +151,21 @@ public sealed class SpyGame : Game
             return new Chase(_drive, ppm, _homePose, _body, l.Fleeing.Select(r => new ChaseTarget(r.Car.Name, r.Route!, r.Loop,
                 (r.Car.Pose.At, r.Car.Pose.Heading, _view.HeightPxAt(r.Car.Pose.At)), r.Car.Body, r.Car.Handling)).ToList(), world.Project.EffectiveCellHeight, l.Hero?.Handling);
         return new Chase(_route!, _drive, ppm, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect), _view.HeightPxAt, world.Project.EffectiveCellHeight);
+    }
+
+    /// <summary>WI-026: the traffic's trips over the stage's roads, and its two looks: the picture of a placed sports car and
+    /// of a placed pickup (any placed vehicle of that item), else drawn as a tinted box of the player's size.</summary>
+    private LaneTrips MakeTrips(WorldFile world)
+    {
+        var items = (world.PlacedThings ?? new List<PlacedThing>()).ToDictionary(t => t.Id, t => t.Item, StringComparer.Ordinal);
+        foreach (var pic in _view.Placed.Pictures)
+            if (items.TryGetValue(pic.Id, out var item))
+            {
+                int look = Handling.For(item) == Handling.Pickup ? 1 : item.Contains("car", StringComparison.OrdinalIgnoreCase) ? 0 : -1;
+                if (look >= 0 && _looks[look] is null) _looks[look] = pic;
+            }
+        var bodies = _looks.Select(p => p is { } pic ? StageLogic.BodyOf(pic) : _body).ToArray();
+        return new LaneTrips(world, _view.RoadScene, _drive, _view.HeightPxAt, bodies);
     }
 
     /// <summary>A car's picture: the world's sprite named <paramref name="name"/>, its poster frame.</summary>
@@ -183,6 +205,10 @@ public sealed class SpyGame : Game
             // R (or Enter once it is over) starts the chase again: failure is fast to retry (vision §7).
             bool again = keys.IsKeyDown(Keys.R) || (_chase.State != ChaseState.Running && keys.IsKeyDown(Keys.Enter));
             if (again && !_againHeld) NewChase();
+            // WI-026: T turns the traffic off and on (a fresh chase either way).
+            bool traffic = keys.IsKeyDown(Keys.T);
+            if (traffic && !_trafficHeld) { _trafficOn = !_trafficOn; NewChase(); }
+            _trafficHeld = traffic;
             _againHeld = again;
             _chase.Step(drive, dt);
         }
@@ -202,7 +228,7 @@ public sealed class SpyGame : Game
         GraphicsDevice.Clear(Color.Black);
         // WI-020 cold check: the 10 s picture looks at the target, the 20 s one at the border (the scripted car is elsewhere).
         var focus = _options.Shots is not null && _chase is not null
-            ? _shot == 1 ? _chase.Target.Position : _shot == 2 ? _chase.Route.PointAt(_chase.BorderAlong) : _car.Position + _camera.Lead
+            ? _shot == 1 ? _chase.Target.Position : _shot == 3 && _chase.Traffic.Count > 0 ? _chase.Traffic.OrderBy(v => Vector2.Distance(v.Car.Position, _car.Position)).First().Car.Position : _shot == 2 ? _chase.Route.PointAt(_chase.BorderAlong) : _car.Position + _camera.Lead
             : _car.Position + _camera.Lead;
         var camera = _overview ? Overview() : new WorldCamera(focus, _camera.Zoom, 0f);
         float carHeight = _car.HeightPx;
@@ -222,6 +248,14 @@ public sealed class SpyGame : Game
                     if (!In(t.Car.HeightPx)) continue;
                     if (_logic is { } l && l.Fleeing.ElementAtOrDefault(i) is { } runner) DrawPictureCar(camera, viewport, t.Car, runner.Car.Picture);
                     else DrawCar(camera, viewport, t.Car, _targetSprite, Color.IndianRed);
+                }
+            // WI-026: the traffic, each in its paint (the stage's car picture tinted; a box where the stage has none).
+            if (_chase is not null)
+                foreach (var v in _chase.Traffic)
+                {
+                    if (!In(v.Car.HeightPx) || !_overview && Vector2.Distance(v.Car.Position, focus) > 120 * _view.Stage.World.Project.EffectivePxPerMetre) continue;
+                    if (_looks[v.Trip.Look] is { } look) DrawPictureCar(camera, viewport, v.Car, look, v.Trip.Tint);
+                    else DrawCar(camera, viewport, v.Car, null, v.Trip.Tint);
                 }
             if (In(carHeight))
             {
@@ -257,15 +291,15 @@ public sealed class SpyGame : Game
     }
 
     /// <summary>FEAT-009 S4: a car drawn from its theme picture (a placed vehicle's), about its centre, at the picture's size.</summary>
-    private void DrawPictureCar(in WorldCamera camera, Viewport viewport, Car car, PlacedPicture picture)
+    private void DrawPictureCar(in WorldCamera camera, Viewport viewport, Car car, PlacedPicture picture, Color? tint = null)
     {
         Texture2D texture;
         try { texture = _view.ThemePicture(picture.File); }
-        catch (Exception) { DrawCar(camera, viewport, car, null, Color.Silver); return; }
+        catch (Exception) { DrawCar(camera, viewport, car, null, tint ?? Color.Silver); return; }
         _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.LinearClamp,
             transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
         var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height);
-        _spriteBatch.Draw(texture, car.Position, null, Color.White, car.Heading, new Vector2(texture.Width / 2f, texture.Height / 2f), scale, SpriteEffects.None, 0f);
+        _spriteBatch.Draw(texture, car.Position, null, tint ?? Color.White, car.Heading, new Vector2(texture.Width / 2f, texture.Height / 2f), scale, SpriteEffects.None, 0f);
         _spriteBatch.End();
     }
 
@@ -318,6 +352,8 @@ public sealed class SpyGame : Game
         if (c.State == ChaseState.Running && c.Clock < 3)
             Centre(c.Targets.Count == 1 ? $"STOP THE {c.Targets[0].Name.ToUpperInvariant()} BEFORE THE BORDER" : $"STOP ALL {c.Targets.Count} BEFORE THEY GET AWAY",
                 viewport.Height / 3f, 5, Color.White);
+        if (c.State == ChaseState.Running && c.Clock < 3 && _trips is { Empty: false })
+            Centre($"T: TRAFFIC {(_trafficOn ? "ON" : "OFF")}", viewport.Height / 3f + 50, 3, Color.White);
         if (c.State != ChaseState.Running)
         {
             Centre(c.Outcome ?? "", viewport.Height / 2f - 40, 10, c.State == ChaseState.Won ? Color.LimeGreen : Color.Red);
@@ -448,6 +484,36 @@ public sealed class SpyGame : Game
             runnerOk = alone.Outcome == "IT GOT AWAY" && joinedAt >= 0 && worstOff / ppm < 4;
             _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, on its line after {joinedAt:0.0} s, furthest off it since {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s => {(runnerOk ? "ok" : "BAD")}"));
             if (offAt.Count > 0) _report.Add("  left the road at: " + string.Join(", ", offAt));
+            // WI-026: the same, among traffic, three seeds: does it still get away, does it pass, does the traffic flow both
+            // ways, and does any traffic car stand caught (its box not fitting) or still?
+
+            if (_trips is { Empty: false })
+                for (int seed = 1; seed <= 3; seed++)
+                {
+                    var busy = MakeChase();
+                    busy.UseTraffic(_trips, Traffic.Cars, seed);
+                    int same = 0, oncoming = 0;
+                    foreach (var v in busy.Traffic)
+                    {
+                        float along = busy.Route.Project(v.Car.Position);
+                        if (Vector2.Distance(busy.Route.PointAt(along), v.Car.Position) > 8 * ppm) continue;   // not on the target's way
+                        if (Vector2.Dot(v.Car.Forward, new Vector2(MathF.Sin(busy.Route.HeadingAt(along)), -MathF.Cos(busy.Route.HeadingAt(along)))) > 0) same++; else oncoming++;
+                    }
+                    int placed = busy.Traffic.Count, caughtCars = 0;
+                    double passing = 0, slowest = double.MaxValue, fastest = 0;
+                    while (busy.State == ChaseState.Running && busy.Clock < 120)
+                    {
+                        busy.Step(parked, 1 / 60.0);
+                        if (Math.Abs(busy.Runner.Offset) > ppm) passing += 1 / 60.0;
+                        foreach (var v in busy.Traffic)
+                        {
+                            if (!Driving.Fits(v.Car.Position, v.Car.Heading, v.Car.HeightPx, _drive, v.Body, out _, out _)) caughtCars++;
+                            if (v.StillFor == 0 && v.Car.SpeedMs > 1) { slowest = Math.Min(slowest, v.Car.SpeedMs); fastest = Math.Max(fastest, v.Car.SpeedMs); }
+                        }
+                    }
+                    int still = busy.Traffic.Count(v => v.StillFor > 3);
+                    _report.Add(FormattableString.Invariant($"traffic seed {seed} ({_trips.Exits} exits): {placed} cars ({same} on the target's way going with it, {oncoming} oncoming); target {busy.Outcome ?? "still running"} after {busy.Clock:0.0} s (alone {alone.Clock:0.0}), passing {passing:0.0} s, spun by traffic {(busy.Target.Spinning ? "now" : "not now")}; contacts among cars {busy.OtherContacts}, replaced {busy.Replaced}, standing still at the end {still}, caught car-frames {caughtCars}, cruising {slowest * 3.6:0}-{fastest * 3.6:0} km/h"));
+                }
             // His first drive: after a restart the car went through everything and the pickup could be stopped only once.
             // Three chases in a row on the island, a rammer at the wheel: how each ends, and frames either car sat "caught"
             // (its box not fitting where it is, so the driving lets it pass through everything).

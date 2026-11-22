@@ -31,6 +31,8 @@ public sealed class Fugitive
     public float BorderAlong { get; }
     /// <summary>Spun out to a standstill once: it stays where it stopped, braking (D5).</summary>
     public bool Stopped { get; internal set; }
+    /// <summary>WI-026: its spin now was the player's doing. A spin from traffic does not stop it: it recovers and flees on.</summary>
+    public bool SpunByPlayer { get; internal set; }
     /// <summary>Metres still to its border (infinite on a loop).</summary>
     public double ToBorderPx => BorderAlong - Runner.Along;
 }
@@ -45,6 +47,10 @@ public sealed class Fugitive
 /// Runner with a route is a target, starting where it was placed. The player wins when EVERY target is stopped and loses when
 /// ANY gets away. A stopped target stays where it stopped. Targets do not touch each other (decided by AI: one Runner per
 /// stage today; overturn when two meet).</para>
+///
+/// <para>**WI-026: traffic** (<see cref="UseTraffic"/>): innocent cars drive lane trips in both directions. Every car touches
+/// every car. The player hitting traffic costs health as any push does, and a head-on with it ends the chase as with a
+/// target. Contacts without the player cost no health. A target spun out by traffic is not stopped: it recovers and flees.</para>
 /// </summary>
 public sealed class Chase
 {
@@ -133,6 +139,41 @@ public sealed class Chase
     public double GapMetres => (Fleeing.Select(t => (double?)Vector2.Distance(Player.Position, t.Car.Position)).Min()
         ?? Vector2.Distance(Player.Position, Target.Position)) / _ppm;
 
+    // ---- WI-026 traffic ----
+
+    private ITrafficSource? _traffic;
+    private Random _rng = new(0);
+
+    /// <summary>The traffic on the road now.</summary>
+    public List<Traveller> Traffic { get; } = new();
+
+    /// <summary>Contacts between cars the player was not in (traffic with traffic, a target with traffic): for the report.</summary>
+    public int OtherContacts { get; private set; }
+
+    /// <summary>Traffic cars taken away and put back elsewhere, out of sight.</summary>
+    public int Replaced { get; private set; }
+
+    /// <summary>Fill the roads with <paramref name="cars"/> traffic cars from <paramref name="source"/>, away from the player
+    /// and the targets; the same seed gives the same traffic.</summary>
+    public void UseTraffic(ITrafficSource source, int cars, int seed)
+    {
+        _traffic = source;
+        _rng = new Random(seed);
+        Traffic.Clear();
+        for (int i = 0; i < cars; i++)
+            if (source.Next(_rng, Player.Position, Taken(), initial: true) is { } trip) Traffic.Add(new Traveller(trip, _ppm));
+    }
+
+    private List<Vector2> Taken()
+    {
+        var taken = new List<Vector2> { Player.Position };
+        taken.AddRange(Targets.Select(t => t.Car.Position));
+        taken.AddRange(Traffic.Select(t => t.Car.Position));
+        return taken;
+    }
+
+    private IEnumerable<Car> AllCars() => new[] { Player }.Concat(Targets.Select(t => t.Car)).Concat(Traffic.Select(t => t.Car));
+
     public void Step(Drive drive, double dt)
     {
         if (State != ChaseState.Running || dt <= 0) return;
@@ -140,43 +181,110 @@ public sealed class Chase
         _cooldown = Math.Max(0, _cooldown - dt);
 
         var wasSpinning = Targets.Select(t => t.Car.Spinning).ToArray();
+        var cars = AllCars().ToList();
         var playerEvent = Driving.Step(Player, drive, dt, _world, PlayerBody, _ppm, PlayerStart);
         foreach (var t in Targets)
-            Driving.Step(t.Car, t.Stopped ? new Drive(false, true, 0f) : t.Runner.DriveFor(t.Car), dt, _world, t.Body, _ppm, t.Start);
+        {
+            var intent = t.Stopped ? new Drive(false, true, 0f)
+                : Traffic.Count == 0 ? t.Runner.DriveFor(t.Car)
+                : Pursued(t, cars, dt);
+            Driving.Step(t.Car, intent, dt, _world, t.Body, _ppm, t.Start);
+        }
+        foreach (var v in Traffic.ToList())
+        {
+            double cap = Math.Min(v.EndCapMs, SpyOnWheels.Traffic.Ahead(v.Car, cars, _ppm) is { } a ? a.CapMs : double.MaxValue);   // stops at its trip's end
+            var ev = Driving.Step(v.Car, v.Runner.DriveFor(v.Car, cap, 0, dt), dt, _world, v.Body, _ppm, v.Trip.Start);
+            v.StillFor = Math.Abs(v.Car.SpeedMs) < 1 ? v.StillFor + dt : 0;
+            if (ev == DriveEvent.Sank) Replace(v, force: true);
+        }
 
         if (playerEvent == DriveEvent.Sank) { End(ChaseState.Lost, "SANK"); return; }
 
-        // Car meets car: only at the same height (one on a deck, one under it, never touch).
-        foreach (var t in Targets)
+        // Car meets car: only at the same height (one on a deck, one under it, never touch). The player first.
+        foreach (var (car, body, target) in Others())
         {
-            if (Math.Abs(Player.HeightPx - t.Car.HeightPx) > _levelTolerancePx
-                || !Geometry.Overlap(PlayerBody.Shape(Player.Position, Player.Heading), t.Body.Shape(t.Car.Position, t.Car.Heading), out var normal, out float depth))
-                continue;
-            Part(t, normal, depth + 2);
-            if (_cooldown <= 0 && Contact.Resolve(Player, t.Car, normal) is { } hit)
+            if (!Touch(Player, PlayerBody, car, body, out var normal, out float depth)) continue;
+            Part(Player, PlayerBody, car, body, normal, depth + 2);
+            if (_cooldown <= 0 && Contact.Resolve(Player, car, normal) is { } hit)
             {
                 _cooldown = ContactCooldownS;
                 Contacts.Add((Clock, hit));
+                if (target is not null && hit.SpunOut) target.SpunByPlayer = true;
                 Health = Math.Max(0, Health - hit.Damage);
                 if (hit.Kind == ContactKind.Frontal) { End(ChaseState.Lost, "HEAD-ON"); return; }
                 if (Health <= 0) { End(ChaseState.Lost, "WRECKED"); return; }
             }
         }
+        // Then every other pair: pushed and turned as any contact, no health to lose.
+        var others = Others().ToList();
+        for (int i = 0; i < others.Count; i++)
+            for (int j = i + 1; j < others.Count; j++)
+            {
+                var (a, ab, ta) = others[i];
+                var (b, bb, tb) = others[j];
+                if (ta is not null && tb is not null) continue;   // targets do not touch each other (S4)
+                if (!Touch(a, ab, b, bb, out var normal, out float depth)) continue;   // normal: b to a
+                Part(a, ab, b, bb, normal, depth + 2);
+                if (Contact.Resolve(a, b, normal) is not null) OtherContacts++;
+            }
 
-        // Stopped: it was spun out and has skidded to a standstill (D5). All stopped wins.
+        // Stopped: spun out BY THE PLAYER and skidded to a standstill (D5, WI-026). All stopped wins.
         for (int i = 0; i < Targets.Count; i++)
-            if (wasSpinning[i] && !Targets[i].Car.Spinning) Targets[i].Stopped = true;
+            if (wasSpinning[i] && !Targets[i].Car.Spinning)
+            {
+                if (Targets[i].SpunByPlayer) Targets[i].Stopped = true;
+                Targets[i].SpunByPlayer = false;
+            }
         if (Targets.All(t => t.Stopped)) { End(ChaseState.Won, "STOPPED"); return; }
-        if (Fleeing.Any(t => t.Runner.Along >= t.BorderAlong)) End(ChaseState.Lost, "IT GOT AWAY");
+        if (Fleeing.Any(t => t.Runner.Along >= t.BorderAlong)) { End(ChaseState.Lost, "IT GOT AWAY"); return; }
+
+        // Traffic at its trip's end, or stuck, is taken away once out of sight and a new car comes in elsewhere.
+        foreach (var v in Traffic.ToList())
+        {
+            if (v.Arrived && !v.Trip.ToExit && _traffic?.Onward(_rng, v.Car) is { } way) { v.DriveOn(way.Route, way.ToExit, _ppm); continue; }
+            if (v.Arrived || v.StillFor > SpyOnWheels.Traffic.StuckSeconds) Replace(v, force: v.Arrived && v.Trip.ToExit);   // off the map: gone at once
+        }
+    }
+
+    /// <summary>The fleeing target's intent among traffic: out to pass a slower car, and braking only when about to hit one
+    /// in the lane it is driving.</summary>
+    private Drive Pursued(Fugitive t, List<Car> cars, double dt)
+    {
+        var others = cars.Where(c => !ReferenceEquals(c, Player)).ToList();
+        double aside = SpyOnWheels.Traffic.PassAside(t.Car, t.Runner, others, _ppm);
+        double? cap = SpyOnWheels.Traffic.Ahead(t.Car, others, _ppm) is { GapM: < 10 } a ? a.CapMs : null;
+        return t.Runner.DriveFor(t.Car, cap, (float)(aside * _ppm), dt);
+    }
+
+    private void Replace(Traveller v, bool force)
+    {
+        if (!force && Vector2.Distance(v.Car.Position, Player.Position) < SpyOnWheels.Traffic.OutOfSightMetres * _ppm) return;
+        Traffic.Remove(v);
+        if (_traffic?.Next(_rng, Player.Position, Taken(), initial: false) is { } trip) Traffic.Add(new Traveller(trip, _ppm));
+        Replaced++;
+    }
+
+    /// <summary>Every car but the player's: the targets (with their fugitive), then the traffic.</summary>
+    private IEnumerable<(Car Car, CarBody Body, Fugitive? Target)> Others() =>
+        Targets.Select(t => (t.Car, t.Body, (Fugitive?)t)).Concat(Traffic.Select(v => (v.Car, v.Body, (Fugitive?)null)));
+
+    private bool Touch(Car a, CarBody ab, Car b, CarBody bb, out Vector2 normal, out float depth)
+    {
+        normal = Vector2.Zero; depth = 0;
+        if (Math.Abs(a.HeightPx - b.HeightPx) > _levelTolerancePx) return false;
+        // Far apart: no need to test the boxes.
+        float reach = Math.Max(ab.LengthPx, ab.WidthPx) + Math.Max(bb.LengthPx, bb.WidthPx);
+        if (Vector2.DistanceSquared(a.Position, b.Position) > reach * reach) return false;
+        return Geometry.Overlap(ab.Shape(a.Position, a.Heading), bb.Shape(b.Position, b.Heading), out normal, out depth);
     }
 
     /// <summary>
-    /// The two cars apart again along the contact line (<paramref name="normal"/>: target → player), half each, but only into
-    /// room the car fits in: a car parted into a wall or over an edge would be "caught", and the driving lets a caught car
-    /// move freely through everything until it is out (his first drive: the car went through everything). A car with no
-    /// room stays put and the other takes the whole gap; with room for neither, the push of the contact parts them.
+    /// The two cars apart again along the contact line (<paramref name="normal"/>: b to a), half each, but only into room the
+    /// car fits in: a car parted into a wall or over an edge would be "caught", and the driving lets a caught car move freely
+    /// through everything until it is out (his first drive: the car went through everything). A car with no room stays put
+    /// and the other takes the whole gap; with room for neither, the push of the contact parts them.
     /// </summary>
-    private void Part(Fugitive target, Vector2 normal, float gapPx)
+    private void Part(Car a, CarBody ab, Car b, CarBody bb, Vector2 normal, float gapPx)
     {
         bool TryMove(Car car, CarBody body, Vector2 by)
         {
@@ -185,10 +293,10 @@ public sealed class Chase
             car.HeightPx = h;
             return true;
         }
-        bool playerMoved = TryMove(Player, PlayerBody, normal * (gapPx / 2));
-        bool targetMoved = TryMove(target.Car, target.Body, -normal * (gapPx / 2));
-        if (!playerMoved && targetMoved) TryMove(target.Car, target.Body, -normal * (gapPx / 2));
-        else if (playerMoved && !targetMoved) TryMove(Player, PlayerBody, normal * (gapPx / 2));
+        bool aMoved = TryMove(a, ab, normal * (gapPx / 2));
+        bool bMoved = TryMove(b, bb, -normal * (gapPx / 2));
+        if (!aMoved && bMoved) TryMove(b, bb, -normal * (gapPx / 2));
+        else if (aMoved && !bMoved) TryMove(a, ab, normal * (gapPx / 2));
     }
 
     private void End(ChaseState state, string outcome)
