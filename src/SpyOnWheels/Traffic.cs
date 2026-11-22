@@ -69,7 +69,7 @@ public static class Traffic
     public const double KeepGapMetres = 6;         // traffic stops this far behind the car ahead
     public const double ComfortBrakeMs2 = 6;       // and slows for it this hard
     public const double PassAsideMetres = 3.6;     // the target pulls out this far to pass (one lane)
-    public const double PassSlowerByMs = 3;        // it passes a car going this much slower than it would
+    public const double PassSlowerByMs = 1.5;      // it passes a car going this much slower than it would (WI-028 "more aggressive": was 3)
     public const double OutOfSightMetres = 70;     // traffic comes and goes only this far from the player
     public const double StuckSeconds = 8;          // standing this long, it is taken away (once out of sight)
     public const double LongLookSeconds = 4;       // WI-027: a train this far off in time already blocks the crossing

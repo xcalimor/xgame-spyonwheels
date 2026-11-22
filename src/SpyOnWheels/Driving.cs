@@ -26,6 +26,7 @@ public static class Driving
         (Vector2 At, float Heading, float HeightPx) start)
     {
         car.Ground = world.TractionAt(car.Position, car.HeightPx);   // WI-019: the surface under the car sets its grip
+        float heightBefore = car.HeightPx;
         float headingBefore = car.Heading;
         var wanted = car.Advance(drive, dt);
         // A turn that would push the car's box into something is not taken (turning on the spot against a wall).
@@ -82,6 +83,7 @@ public static class Driving
             }
         }
         car.Slow(keep);
+        car.Climb((car.HeightPx - heightBefore) / pxPerMetre);   // WI-028: uphill costs speed, downhill gives it
 
         if (world.SurfaceNear(car.Position, car.HeightPx) is { Kind: SurfaceKind.Water })
         {

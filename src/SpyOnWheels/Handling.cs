@@ -26,16 +26,16 @@ public sealed record Handling(
         OffRoadDragScale: 1, MassKg: 1400);
 
     /// <summary>The pickup: slower, softer, longer to stop, and heavier. Built for rough ground, so off the road it loses
-    /// less: flat out on grass ~112 km/h of its ~137 (82 %), where the sports car keeps ~130 of 165 (78 %).</summary>
+    /// less: flat out on grass ~126 km/h of its ~150 (83 %), where the sports car keeps ~130 of 165 (78 %).</summary>
     public static readonly Handling Pickup = new("pickup",
-        TopSpeedMs: 38,            // ~137 km/h (the Runner cruises at 32 on the straight)
+        TopSpeedMs: 42,            // ~150 km/h (WI-028: the Runner cruises at 37 on the straight; was 38)
         AccelerationMs2: 9,        // 0-100 km/h in ~3 s, the sports car's ~1.7 s
         BrakeMs2: 30,              // from 100 km/h ~13 m to stop, the sports car's ~8 m
         GripMs2: 28,
         GripPowerMs2: 14,
         TurnSlowRad: 2.1,
         TurnFastRad: 0.7,
-        OffRoadDragScale: 0.65,    // flat out off the road: 9 / (0.444 x 0.65) ≈ 31 m/s (~112 km/h)
+        OffRoadDragScale: 0.58,    // flat out off the road: 9 / (0.444 x 0.58) ≈ 35 m/s (~126 km/h, 83 % of its top; WI-028 top 42)
         MassKg: 2300);
 
     /// <summary>The handling for a placed car, by its theme item id or its name ("pickup", "Pickup"); every other car is

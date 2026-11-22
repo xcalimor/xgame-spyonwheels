@@ -36,7 +36,7 @@ public class HandlingTests
     public void The_pickup_is_slower_slower_to_speed_longer_to_stop_and_turns_wider()
     {
         Car sports = Make(Handling.SportsCar), pickup = Make(Handling.Pickup);
-        Assert.True(Run(pickup, new Drive(true, false, 0), 10) < Run(sports, new Drive(true, false, 0), 10) - 5);   // top speed
+        Assert.True(Run(pickup, new Drive(true, false, 0), 10) < Run(sports, new Drive(true, false, 0), 10) - 3);   // top speed (WI-028: 150 vs 165 km/h)
         Assert.Equal(Handling.Pickup.TopSpeedMs, pickup.SpeedMs, 3);
 
         double ToHundred(Handling h) { var c = Make(h); double t = 0; while (c.SpeedMs < 27.8) { c.Step(new Drive(true, false, 0), Dt); t += Dt; } return t; }

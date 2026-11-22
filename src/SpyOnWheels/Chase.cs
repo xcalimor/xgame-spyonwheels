@@ -31,8 +31,11 @@ public sealed class Fugitive
     public float BorderAlong { get; }
     /// <summary>Spun out to a standstill once: it stays where it stopped, braking (D5).</summary>
     public bool Stopped { get; internal set; }
-    /// <summary>WI-026: its spin now was the player's doing. A spin from traffic does not stop it: it recovers and flees on.</summary>
-    public bool SpunByPlayer { get; internal set; }
+    /// <summary>WI-028: its hit points (his "harder to stop, so a bit more hitpoint"). Every hit of the player's takes some;
+    /// at none it is finished: it brakes to a standstill, and is stopped.</summary>
+    public double Health { get; internal set; } = Chase.TargetMaxHealth;
+    /// <summary>Out of hit points: braking to its stop.</summary>
+    public bool Finished => Health <= 0;
     /// <summary>Metres still to its border (infinite on a loop).</summary>
     public double ToBorderPx => BorderAlong - Runner.Along;
 }
@@ -55,6 +58,12 @@ public sealed class Fugitive
 public sealed class Chase
 {
     public const double MaxHealth = 100;
+    // WI-028: the target's hit points. A hit costs it a base plus a share of how hard it was; a spin-out costs more, and
+    // with hit points left it recovers and flees on (it used to be stopped by the first spin-out).
+    public const double TargetMaxHealth = 100;
+    public const double TargetHitDamage = 6;          // every hit
+    public const double TargetDamagePerMs = 1.5;      // plus this per m/s of closing (a 15 m/s rear hit: 28.5)
+    public const double TargetSpinDamage = 20;        // and a spin-out on top
     public const double TargetLeadMetres = 35;      // the target's head start along the route
     public const double BorderBeforeEndMetres = 40; // the border lies across the route this far before its end (D4)
     public const double ContactCooldownS = 0.35;    // one touch is one contact, not one a frame
@@ -133,7 +142,7 @@ public sealed class Chase
     public bool TargetSpinning => Target.Spinning;
 
     /// <summary>The targets still fleeing.</summary>
-    public IEnumerable<Fugitive> Fleeing => Targets.Where(t => !t.Stopped);
+    public IEnumerable<Fugitive> Fleeing => Targets.Where(t => !t.Stopped && !t.Finished);   // WI-028: a finished one only brakes
 
     /// <summary>Metres from the player to the nearest target still fleeing (to the first, once all are stopped).</summary>
     public double GapMetres => (Fleeing.Select(t => (double?)Vector2.Distance(Player.Position, t.Car.Position)).Min()
@@ -196,12 +205,11 @@ public sealed class Chase
         _cooldown = Math.Max(0, _cooldown - dt);
 
         foreach (var train in Trains) train.Step(dt);   // first: nothing stops a train, and every driver reads it where it is now
-        var wasSpinning = Targets.Select(t => t.Car.Spinning).ToArray();
         var cars = AllCars().ToList();
         var playerEvent = Driving.Step(Player, drive, dt, _world, PlayerBody, _ppm, PlayerStart);
         foreach (var t in Targets)
         {
-            var intent = t.Stopped ? new Drive(false, true, 0f)
+            var intent = t.Stopped || t.Finished ? new Drive(false, true, 0f)
                 : Traffic.Count == 0 ? t.Runner.DriveFor(t.Car)
                 : Pursued(t, cars, dt);
             Driving.Step(t.Car, intent, dt, _world, t.Body, _ppm, t.Start);
@@ -226,7 +234,11 @@ public sealed class Chase
             {
                 _cooldown = ContactCooldownS;
                 Contacts.Add((Clock, hit));
-                if (target is not null && hit.SpunOut) target.SpunByPlayer = true;
+                if (target is not null)
+                {
+
+                    target.Health = Math.Max(0, target.Health - (TargetHitDamage + TargetDamagePerMs * hit.ClosingMs + (hit.SpunOut ? TargetSpinDamage : 0)));
+                }
                 Health = Math.Max(0, Health - hit.Damage);
                 if (hit.Kind == ContactKind.Frontal) { End(ChaseState.Lost, "HEAD-ON"); return; }
                 if (Health <= 0) { End(ChaseState.Lost, "WRECKED"); return; }
@@ -270,13 +282,10 @@ public sealed class Chase
                 if (Contact.Resolve(a, b, normal) is not null) OtherContacts++;
             }
 
-        // Stopped: spun out BY THE PLAYER and skidded to a standstill (D5, WI-026). All stopped wins.
-        for (int i = 0; i < Targets.Count; i++)
-            if (wasSpinning[i] && !Targets[i].Car.Spinning)
-            {
-                if (Targets[i].SpunByPlayer) Targets[i].Stopped = true;
-                Targets[i].SpunByPlayer = false;
-            }
+        // Stopped (WI-028): out of hit points and braked to a standstill. A spin-out alone no longer stops it: with hit points
+        // left it recovers and flees on, whoever spun it. All stopped wins.
+        foreach (var t in Targets)
+            if (t.Finished && !t.Car.Spinning && Math.Abs(t.Car.SpeedMs) < 0.5 && Math.Abs(t.Car.SlipMs) < 0.5) t.Stopped = true;
         if (Targets.All(t => t.Stopped)) { End(ChaseState.Won, "STOPPED"); return; }
         if (Fleeing.Any(t => t.Runner.Along >= t.BorderAlong)) { End(ChaseState.Lost, "IT GOT AWAY"); return; }
 

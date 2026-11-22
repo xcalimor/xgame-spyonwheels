@@ -68,11 +68,12 @@ public class LogicChaseTests
         for (int i = 0; i < 60 * 120 && chase.State == ChaseState.Running; i++)
         {
             // At the nearest one still fleeing, flat out.
-            var prey = chase.Fleeing.OrderBy(t => Vector2.Distance(t.Car.Position, chase.Player.Position)).First();
+            // WI-028: a finished one only brakes; once none flees, wait for the last to stop.
+            if (chase.Fleeing.OrderBy(t => Vector2.Distance(t.Car.Position, chase.Player.Position)).FirstOrDefault() is not { } prey) { chase.Step(new Drive(false, true, 0), Dt); continue; }
             var to = prey.Car.Position - chase.Player.Position;
             float off = MathHelper.WrapAngle(MathF.Atan2(to.X, -to.Y) - chase.Player.Heading);
             chase.Step(new Drive(true, false, Math.Clamp(off * 3, -1, 1)), Dt);
-            oneStoppedWhileRunning |= chase.State == ChaseState.Running && chase.Targets.Count(t => t.Stopped) == 1;
+            oneStoppedWhileRunning |= chase.State == ChaseState.Running && chase.Targets.Count(t => t.Stopped || t.Finished) == 1;
         }
         Assert.True(oneStoppedWhileRunning, "one stopped, and the chase went on");
         Assert.Equal("STOPPED", chase.Outcome);

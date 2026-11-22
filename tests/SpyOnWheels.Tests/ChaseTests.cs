@@ -76,7 +76,7 @@ public class ChaseTests
             top = Math.Max(top, chase.Target.SpeedMs);
         }
         Assert.Equal("IT GOT AWAY", chase.Outcome);
-        Assert.True(worst < M(1.5), $"strayed {worst / Ppm:0.0} m off its line");
+        Assert.True(worst < M(2.5), $"strayed {worst / Ppm:0.0} m off its line");   // WI-028 "more aggressive": it takes bends faster and cuts them (was 1.5 m)
         Assert.True(top > 28, $"top {top * 3.6:0} km/h: it should flee near its cruise");
     }
 
@@ -214,7 +214,7 @@ public class ChaseTests
     }
 
     [Fact]
-    public void Every_push_costs_health_and_spinning_the_target_to_a_stop_wins()
+    public void Every_push_costs_health_and_wearing_the_target_down_to_a_stop_wins()
     {
         var chase = ChaseOn(North(1500));
         // Flat out up the road behind it: the player is faster, so it catches it and rams it from behind.

@@ -33,6 +33,12 @@ public sealed class SpyGame : Game
     private readonly PlacedPicture?[] _looks = new PlacedPicture?[2];
     private bool _trafficOn = true, _trafficHeld;
     private int _trafficSeed = 1;
+    /// <summary>WI-028 (his "no sense of going up or down"): the car's height in levels, eased; the camera comes closer as it
+    /// climbs and backs off as it drops, and every car is drawn a little bigger the higher it stands.</summary>
+    private double _heightLevels;
+    public const double ZoomPerLevel = 0.06, ScalePerLevel = 0.03, HeightEaseSeconds = 0.4;
+    private float LevelPx => _view.Stage.World.Project.EffectiveCellHeight;
+    private float HeightScale(float heightPx) => 1f + (float)(ScalePerLevel * heightPx / LevelPx);
     /// <summary>WI-017: the camera zooms out with speed.</summary>
     private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
 
@@ -219,6 +225,7 @@ public sealed class SpyGame : Game
             _events[happened] = _events.GetValueOrDefault(happened) + 1;
         }
         _camera.Update(_car.SpeedMs, dt, _car.Forward, new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height));
+        _heightLevels += (_car.HeightPx / LevelPx - _heightLevels) * (1 - Math.Exp(-dt / HeightEaseSeconds));
         if (_drive.SurfaceNear(_car.Position, _car.HeightPx) is { Kind: SurfaceKind.Deck }) _onDeckSeconds += dt;
         _clock += dt;
         base.Update(gameTime);
@@ -231,7 +238,7 @@ public sealed class SpyGame : Game
         var focus = _options.Shots is not null && _chase is not null
             ? _shot == 1 ? _chase.Target.Position : _shot == 3 && _chase.Trains.Count > 0 ? _chase.Trains[0].Vehicles[1].Car.Position : _shot == 3 && _chase.Traffic.Count > 0 ? _chase.Traffic.OrderBy(v => Vector2.Distance(v.Car.Position, _car.Position)).First().Car.Position : _shot == 2 ? _chase.Route.PointAt(_chase.BorderAlong) : _car.Position + _camera.Lead
             : _car.Position + _camera.Lead;
-        var camera = _overview ? Overview() : new WorldCamera(focus, _camera.Zoom, 0f);
+        var camera = _overview ? Overview() : new WorldCamera(focus, _camera.Zoom * (float)(1 + ZoomPerLevel * _heightLevels), 0f);
         float carHeight = _car.HeightPx;
         var viewport = GraphicsDevice.Viewport;
         _view.Draw(camera, _clock, band =>
@@ -289,12 +296,12 @@ public sealed class SpyGame : Game
         if (sprite is { } s)
         {
             var texture = _view.Picture(s.SourceFile);
-            _spriteBatch.Draw(texture, car.Position, s.Rect, Color.White, car.Heading, new Vector2(s.Rect.Width / 2f, s.Rect.Height / 2f), 1f, SpriteEffects.None, 0f);
+            _spriteBatch.Draw(texture, car.Position, s.Rect, Color.White, car.Heading, new Vector2(s.Rect.Width / 2f, s.Rect.Height / 2f), HeightScale(car.HeightPx), SpriteEffects.None, 0f);
         }
         else
         {
             _pixel ??= MakePixel();
-            _spriteBatch.Draw(_pixel, car.Position, null, fallback, car.Heading, new Vector2(0.5f), new Vector2(150, 300), SpriteEffects.None, 0f);
+            _spriteBatch.Draw(_pixel, car.Position, null, fallback, car.Heading, new Vector2(0.5f), new Vector2(150, 300) * HeightScale(car.HeightPx), SpriteEffects.None, 0f);
         }
         _spriteBatch.End();
     }
@@ -307,7 +314,7 @@ public sealed class SpyGame : Game
         catch (Exception) { DrawCar(camera, viewport, car, null, tint ?? Color.Silver); return; }
         _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.LinearClamp,
             transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
-        var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height);
+        var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height) * HeightScale(car.HeightPx);
         _spriteBatch.Draw(texture, car.Position, null, tint ?? Color.White, car.Heading, new Vector2(texture.Width / 2f, texture.Height / 2f), scale, SpriteEffects.None, 0f);
         _spriteBatch.End();
     }
@@ -360,6 +367,13 @@ public sealed class SpyGame : Game
         float share = (float)(c.Health / Chase.MaxHealth);
         _spriteBatch.Draw(_pixel, new Rectangle(bar.X, bar.Y, (int)(bar.Width * share), bar.Height), share > 0.5f ? Color.LimeGreen : share > 0.25f ? Color.Orange : Color.Red);
         PixelFont.Draw(_spriteBatch, _pixel, $"HEALTH {c.Health:0}", new Vector2(bar.Right + 12, bar.Y + 1), 3, Color.White);
+        // WI-028: the target's hit points, top right (the nearest still fleeing; the first once none flees).
+        var prey = c.Fleeing.OrderBy(t => Vector2.Distance(t.Car.Position, c.Player.Position)).FirstOrDefault() ?? c.Targets[0];
+        var tbar = new Rectangle(viewport.Width - 320, 20, 300, 18);
+        _spriteBatch.Draw(_pixel, new Rectangle(tbar.X - 2, tbar.Y - 2, tbar.Width + 4, tbar.Height + 4), Color.Black * 0.7f);
+        _spriteBatch.Draw(_pixel, new Rectangle(tbar.X, tbar.Y, (int)(tbar.Width * prey.Health / Chase.TargetMaxHealth), tbar.Height), Color.OrangeRed);
+        string tname = prey.Name.ToUpperInvariant();
+        PixelFont.Draw(_spriteBatch, _pixel, tname, new Vector2(tbar.X - 12 - PixelFont.Width(tname, 3), tbar.Y + 1), 3, Color.White);
         // S4: the nearest border of a target still fleeing; none when every one left drives a loop.
         double toBorder = c.Fleeing.Select(t => t.ToBorderPx).DefaultIfEmpty(double.PositiveInfinity).Min() / _view.Stage.World.Project.EffectivePxPerMetre;
         string border = double.IsInfinity(toBorder) ? "" : $"BORDER {Math.Max(0, toBorder):0} M   ";

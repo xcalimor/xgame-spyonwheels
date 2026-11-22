@@ -99,11 +99,14 @@ public sealed class Car
             if (Math.Abs(YawRadS) < 0.05) YawRadS = 0;
         }
         _looseFor = Math.Max(0, _looseFor - dt);
+        // WI-028: past its top only on speed a slope already gave it (on the level a slide must never carry it past its top).
+        double most = Math.Max(Handling.TopSpeedMs, Math.Min(Velocity.Length(), Handling.TopSpeedMs * DownhillOverTop));
         double v = SpeedMs;
-        if (drive.Throttle) v = v < 0 ? Math.Min(0, v + Handling.BrakeMs2 * dt) : Math.Min(Handling.TopSpeedMs, v + Handling.AccelerationMs2 * dt);
+        if (drive.Throttle) v = v < 0 ? Math.Min(0, v + Handling.BrakeMs2 * dt) : v >= Handling.TopSpeedMs ? v : Math.Min(Handling.TopSpeedMs, v + Handling.AccelerationMs2 * dt);
         else if (drive.Brake) v = v > 0 ? Math.Max(0, v - Handling.BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - Handling.AccelerationMs2 * 0.5 * dt);
         else v = v > 0 ? Math.Max(0, v - RollDragMs2 * dt) : Math.Min(0, v + RollDragMs2 * dt);
         v -= v * Ground.DragPerS * Handling.OffRoadDragScale * dt;   // off the road the ground holds the car back (WI-019 D2)
+        if (v > Handling.TopSpeedMs) v = Math.Max(Handling.TopSpeedMs, v - OverTopDragMs2 * dt);   // WI-028: past its top (downhill) the air takes it back
         SpeedMs = v;
 
         double speed = Math.Abs(v);
@@ -123,15 +126,36 @@ public sealed class Car
         // sideways instead: no cap, and what the tyres take is scrubbed, never turned into forward speed.
         double maxSlip = Math.Tan(MathHelper.ToRadians((float)Ground.MaxDriftDeg)) * Math.Abs(SpeedMs);
         if (!Loose && Math.Abs(SlipMs) > maxSlip) { take += Math.Abs(SlipMs) - maxSlip; SlipMs = Math.Sign(SlipMs) * maxSlip; }
-        if (SpeedMs != 0 && !Loose) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, Handling.TopSpeedMs);
+        if (SpeedMs != 0 && !Loose) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, most);
         // Nose and slide together never pass the top speed.
         double total = Math.Sqrt(SpeedMs * SpeedMs + SlipMs * SlipMs);
-        if (total > Handling.TopSpeedMs) { SpeedMs *= Handling.TopSpeedMs / total; SlipMs *= Handling.TopSpeedMs / total; }
+        if (total > most) { SpeedMs *= most / total; SlipMs *= most / total; }
         return Velocity * (float)(_pxPerMetre * dt);
     }
 
     /// <summary>The height of the surface the car stands on, world px (WI-016).</summary>
     public float HeightPx { get; set; }
+
+    // ---- WI-028 slopes (his ask: "slow down slightly when going upwards and accelerate downwards") ----
+
+    public const double GravityMs2 = 9.81;
+    public const double SlopeShare = 0.5;          // gravity along the slope at half strength: felt, never a wall
+    public const double DownhillOverTop = 1.15;    // downhill may carry a car this far past its top speed
+    public const double OverTopDragMs2 = 6;        // and on the level it bleeds back to its top this fast
+
+    /// <summary>The car rose <paramref name="riseMetres"/> (negative: fell) while moving: what that costs or gives in speed,
+    /// by energy (v² changes by 2 g h, at <see cref="SlopeShare"/>), so a gentle slope and a step of the same height do the
+    /// same. The motion keeps its direction.</summary>
+    public void Climb(double riseMetres)
+    {
+        if (riseMetres == 0) return;
+        var v = Velocity;
+        double speed = v.Length();
+        if (speed < 1e-6) return;
+        double after = Math.Sqrt(Math.Max(0, speed * speed - 2 * GravityMs2 * SlopeShare * riseMetres));
+        SpeedMs *= after / speed;
+        SlipMs *= after / speed;
+    }
 
     public void MoveTo(Vector2 at) => Position = at;
 

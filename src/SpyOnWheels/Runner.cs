@@ -11,8 +11,8 @@ namespace SpyOnWheels;
 /// </summary>
 public sealed class Runner
 {
-    public const double CruiseMs = 32;            // ~115 km/h on the straight: the player's car is faster (46)
-    public const double BendSlowdown = 0.45;      // a right-angle bend ahead takes this share off the cruise
+    public const double CruiseMs = 37;            // ~133 km/h on the straight (WI-028 his "a bit faster"; was 32): the player's car is faster (46)
+    public const double BendSlowdown = 0.3;       // a right-angle bend ahead takes this share off the cruise (WI-028 "more aggressive": was 0.45)
     public const double LookMetres = 4, LookSeconds = 0.25;   // a far aim cuts the bends (first run: 23 m ahead cut 24 m bends by ~3 m)
     public const double BendLookMetres = 45;
     public const double FullSteerRad = 0.35;      // this far off its aim it steers full lock
