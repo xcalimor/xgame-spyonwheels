@@ -72,6 +72,7 @@ public static class Traffic
     public const double PassSlowerByMs = 3;        // it passes a car going this much slower than it would
     public const double OutOfSightMetres = 70;     // traffic comes and goes only this far from the player
     public const double StuckSeconds = 8;          // standing this long, it is taken away (once out of sight)
+    public const double LongLookSeconds = 4;       // WI-027: a train this far off in time already blocks the crossing
 
     /// <summary>The nearest car ahead in <paramref name="car"/>'s lane (its own line, <paramref name="asideM"/> to the right),
     /// and the most <paramref name="car"/> may go now so it stops <see cref="KeepGapMetres"/> behind it. Null: lane clear.
@@ -94,6 +95,32 @@ public static class Traffic
             best = (cap, o, gap, lat);
         }
         return best;
+    }
+
+    /// <summary>
+    /// WI-027: the most <paramref name="car"/> may go so it stops short of a long vehicle crossing or standing in its lane
+    /// (a train). A train vehicle is longer than a lane is wide, so its middle alone may lie outside the lane while its body
+    /// blocks it: the vehicle is read as points every metre along its length. Null: the lane is clear of them.
+    /// </summary>
+    public static double? CapForLong(Car car, IEnumerable<(Car Car, CarBody Body)> vehicles, double ppm)
+    {
+        double? cap = null;
+        foreach (var (v, body) in vehicles)
+        {
+            double half = body.LengthPx / ppm / 2;
+            for (double t = 0; t <= LongLookSeconds; t += 0.5)   // where it is, and where it will be: a crossing is waited at
+            for (double s = -half; s <= half; s += 1)
+            {
+                var p = (v.Position + v.Forward * (float)(s * ppm) + v.Velocity * (float)(t * ppm) - car.Position) / (float)ppm;
+                double fwd = Vector2.Dot(p, car.Forward), lat = Vector2.Dot(p, car.Right);
+                if (fwd <= 0 || fwd > LookAheadMetres || Math.Abs(lat) > LaneHalfMetres) continue;
+                double room = fwd - CarLengthMetres / 2 - body.WidthPx / ppm / 2 - KeepGapMetres / 2;
+                double along = Math.Max(0, Vector2.Dot(v.Velocity, car.Forward));
+                double c = room <= 0 ? 0 : along + Math.Sqrt(2 * ComfortBrakeMs2 * room);
+                cap = cap is { } k ? Math.Min(k, c) : c;
+            }
+        }
+        return cap;
     }
 
     /// <summary>Where the fleeing target wants to drive across its line, metres right of it: out to pass a slower car in its

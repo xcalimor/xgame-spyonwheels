@@ -153,6 +153,21 @@ public sealed class Chase
     /// <summary>Traffic cars taken away and put back elsewhere, out of sight.</summary>
     public int Replaced { get; private set; }
 
+    // ---- WI-027 trains ----
+
+    public const double TrainDeadlyMs = 10;   // a hit with (or by) a train closing this fast ends the chase (36 km/h)
+
+    /// <summary>The trains on the stage's railway lines.</summary>
+    public List<Train> Trains { get; } = new();
+
+    /// <summary>Put trains on the stage (they run whether traffic does or not).</summary>
+    public void UseTrains(IEnumerable<Train> trains) { Trains.Clear(); Trains.AddRange(trains); }
+
+    private IEnumerable<(Car Car, CarBody Body)> TrainVehicles() => Trains.SelectMany(t => t.Vehicles);
+
+    /// <summary>Contacts with a train, any car's (for the report).</summary>
+    public int TrainContacts { get; private set; }
+
     /// <summary>Fill the roads with <paramref name="cars"/> traffic cars from <paramref name="source"/>, away from the player
     /// and the targets; the same seed gives the same traffic.</summary>
     public void UseTraffic(ITrafficSource source, int cars, int seed)
@@ -180,6 +195,7 @@ public sealed class Chase
         Clock += dt;
         _cooldown = Math.Max(0, _cooldown - dt);
 
+        foreach (var train in Trains) train.Step(dt);   // first: nothing stops a train, and every driver reads it where it is now
         var wasSpinning = Targets.Select(t => t.Car.Spinning).ToArray();
         var cars = AllCars().ToList();
         var playerEvent = Driving.Step(Player, drive, dt, _world, PlayerBody, _ppm, PlayerStart);
@@ -193,6 +209,7 @@ public sealed class Chase
         foreach (var v in Traffic.ToList())
         {
             double cap = Math.Min(v.EndCapMs, SpyOnWheels.Traffic.Ahead(v.Car, cars, _ppm) is { } a ? a.CapMs : double.MaxValue);   // stops at its trip's end
+            if (SpyOnWheels.Traffic.CapForLong(v.Car, TrainVehicles(), _ppm) is { } rail) cap = Math.Min(cap, rail);   // waits for a train
             var ev = Driving.Step(v.Car, v.Runner.DriveFor(v.Car, cap, 0, dt), dt, _world, v.Body, _ppm, v.Trip.Start);
             v.StillFor = Math.Abs(v.Car.SpeedMs) < 1 ? v.StillFor + dt : 0;
             if (ev == DriveEvent.Sank) Replace(v, force: true);
@@ -215,6 +232,31 @@ public sealed class Chase
                 if (Health <= 0) { End(ChaseState.Lost, "WRECKED"); return; }
             }
         }
+        // A train against any car: the car is put outside it (a train never moves for a car) and thrown by it. The player hit
+        // that hard is done for; softer, it costs health. Nobody else pays health, and a target spun by it is not stopped.
+        foreach (var (rail, railBody) in TrainVehicles())
+        {
+            if (Touch(rail, railBody, Player, PlayerBody, out var pn, out float pd))
+            {
+                double closing = Vector2.Dot(Player.Velocity - rail.Velocity, pn);   // pn: player to train
+                PartFromFixed(Player, PlayerBody, -pn, pd + 2);
+                if (Contact.Resolve(rail, Player, pn) is not null) TrainContacts++;
+                if (closing >= TrainDeadlyMs) { End(ChaseState.Lost, "HIT BY THE TRAIN"); return; }
+                if (_cooldown <= 0 && closing > Contact.MinClosingMs)
+                {
+                    _cooldown = ContactCooldownS;
+                    Health = Math.Max(0, Health - Contact.PushDamage);
+                    if (Health <= 0) { End(ChaseState.Lost, "WRECKED"); return; }
+                }
+            }
+            foreach (var (car, body, _) in Others())
+            {
+                if (!Touch(rail, railBody, car, body, out var n, out float d)) continue;   // n: car to train
+                PartFromFixed(car, body, -n, d + 2);
+                if (Contact.Resolve(rail, car, n) is not null) TrainContacts++;
+            }
+        }
+
         // Then every other pair: pushed and turned as any contact, no health to lose.
         var others = Others().ToList();
         for (int i = 0; i < others.Count; i++)
@@ -253,6 +295,7 @@ public sealed class Chase
         var others = cars.Where(c => !ReferenceEquals(c, Player)).ToList();
         double aside = SpyOnWheels.Traffic.PassAside(t.Car, t.Runner, others, _ppm);
         double? cap = SpyOnWheels.Traffic.Ahead(t.Car, others, _ppm) is { GapM: < 10 } a ? a.CapMs : null;
+        if (SpyOnWheels.Traffic.CapForLong(t.Car, TrainVehicles(), _ppm) is { } rail) cap = Math.Min(cap ?? double.MaxValue, rail);   // even fleeing, it waits for a train
         return t.Runner.DriveFor(t.Car, cap, (float)(aside * _ppm), dt);
     }
 
@@ -297,6 +340,15 @@ public sealed class Chase
         bool bMoved = TryMove(b, bb, -normal * (gapPx / 2));
         if (!aMoved && bMoved) TryMove(b, bb, -normal * (gapPx / 2));
         else if (aMoved && !bMoved) TryMove(a, ab, normal * (gapPx / 2));
+    }
+
+    /// <summary>A car out of something that does not move (a train), along <paramref name="away"/>, where it fits; with no
+    /// room there, it stays and the contact's push takes it out.</summary>
+    private void PartFromFixed(Car car, CarBody body, Vector2 away, float gapPx)
+    {
+        if (!Driving.Fits(car.Position + away * gapPx, car.Heading, car.HeightPx, _world, body, out float h, out _)) return;
+        car.MoveTo(car.Position + away * gapPx);
+        car.HeightPx = h;
     }
 
     private void End(ChaseState state, string outcome)

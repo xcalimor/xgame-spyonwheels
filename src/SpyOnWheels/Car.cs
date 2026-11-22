@@ -134,6 +134,17 @@ public sealed class Car
     public float HeightPx { get; set; }
 
     public void MoveTo(Vector2 at) => Position = at;
+
+    /// <summary>WI-027: put the car where something else moves it (a train vehicle by its timetable): place, heading, motion
+    /// (m/s, world axes) and height, with no driving.</summary>
+    public void Carry(Vector2 at, float heading, Vector2 velocityMs, float heightPx)
+    {
+        Position = at;
+        Heading = heading;
+        SpeedMs = Vector2.Dot(velocityMs, Forward);
+        SlipMs = Vector2.Dot(velocityMs, Right);
+        HeightPx = heightPx;
+    }
     /// <summary>The car's motion in the world, m/s (y down): along the nose plus the slide.</summary>
     public Vector2 Velocity => Forward * (float)SpeedMs + Right * (float)SlipMs;
 

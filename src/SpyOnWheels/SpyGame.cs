@@ -135,6 +135,7 @@ public sealed class SpyGame : Game
     private void NewChase()
     {
         _chase = MakeChase();
+        _chase.UseTrains(Train.On(_view.Stage.World, _view.RoadScene, _view.HeightPxAt));   // WI-027
         if (_trafficOn && _trips is { Empty: false }) _chase.UseTraffic(_trips, Traffic.Cars, _options.Shots is not null ? _trafficSeed : Environment.TickCount);
         _car = _chase.Player;
         _startPose = _chase.PlayerStart;
@@ -228,7 +229,7 @@ public sealed class SpyGame : Game
         GraphicsDevice.Clear(Color.Black);
         // WI-020 cold check: the 10 s picture looks at the target, the 20 s one at the border (the scripted car is elsewhere).
         var focus = _options.Shots is not null && _chase is not null
-            ? _shot == 1 ? _chase.Target.Position : _shot == 3 && _chase.Traffic.Count > 0 ? _chase.Traffic.OrderBy(v => Vector2.Distance(v.Car.Position, _car.Position)).First().Car.Position : _shot == 2 ? _chase.Route.PointAt(_chase.BorderAlong) : _car.Position + _camera.Lead
+            ? _shot == 1 ? _chase.Target.Position : _shot == 3 && _chase.Trains.Count > 0 ? _chase.Trains[0].Vehicles[1].Car.Position : _shot == 3 && _chase.Traffic.Count > 0 ? _chase.Traffic.OrderBy(v => Vector2.Distance(v.Car.Position, _car.Position)).First().Car.Position : _shot == 2 ? _chase.Route.PointAt(_chase.BorderAlong) : _car.Position + _camera.Lead
             : _car.Position + _camera.Lead;
         var camera = _overview ? Overview() : new WorldCamera(focus, _camera.Zoom, 0f);
         float carHeight = _car.HeightPx;
@@ -249,6 +250,14 @@ public sealed class SpyGame : Game
                     if (_logic is { } l && l.Fleeing.ElementAtOrDefault(i) is { } runner) DrawPictureCar(camera, viewport, t.Car, runner.Car.Picture);
                     else DrawCar(camera, viewport, t.Car, _targetSprite, Color.IndianRed);
                 }
+            // WI-027: the trains: a dark red locomotive, blue-grey wagons, a lighter roof down the middle.
+            if (_chase is not null)
+                foreach (var train in _chase.Trains)
+                    for (int k = 0; k < train.Vehicles.Count; k++)
+                    {
+                        var (rail, body) = train.Vehicles[k];
+                        if (In(rail.HeightPx)) DrawRailVehicle(camera, viewport, rail, body, k == 0);
+                    }
             // WI-026: the traffic, each in its paint (the stage's car picture tinted; a box where the stage has none).
             if (_chase is not null)
                 foreach (var v in _chase.Traffic)
@@ -300,6 +309,23 @@ public sealed class SpyGame : Game
             transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
         var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height);
         _spriteBatch.Draw(texture, car.Position, null, tint ?? Color.White, car.Heading, new Vector2(texture.Width / 2f, texture.Height / 2f), scale, SpriteEffects.None, 0f);
+        _spriteBatch.End();
+    }
+
+    /// <summary>WI-027: one train vehicle as a box (the world has no train picture): body, roof, and on the locomotive a dark
+    /// cab band at each end.</summary>
+    private void DrawRailVehicle(in WorldCamera camera, Viewport viewport, Car rail, CarBody body, bool locomotive)
+    {
+        _pixel ??= MakePixel();
+        _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, transformMatrix: camera.AtHeight(rail.HeightPx, viewport).ViewMatrix(viewport));
+        var centre = new Vector2(0.5f);
+        var bodyColour = locomotive ? new Color(150, 40, 35) : new Color(80, 95, 115);
+        _spriteBatch.Draw(_pixel, rail.Position, null, Color.Black * 0.35f, rail.Heading, centre, new Vector2(body.WidthPx + 12, body.LengthPx + 12), SpriteEffects.None, 0f);
+        _spriteBatch.Draw(_pixel, rail.Position, null, bodyColour, rail.Heading, centre, new Vector2(body.WidthPx, body.LengthPx), SpriteEffects.None, 0f);
+        _spriteBatch.Draw(_pixel, rail.Position, null, Color.Lerp(bodyColour, Color.White, 0.35f), rail.Heading, centre, new Vector2(body.WidthPx * 0.45f, body.LengthPx * 0.92f), SpriteEffects.None, 0f);
+        if (locomotive)
+            foreach (float end in new[] { -1f, 1f })
+                _spriteBatch.Draw(_pixel, rail.Position + rail.Forward * (end * body.LengthPx * 0.42f), null, new Color(30, 30, 35), rail.Heading, centre, new Vector2(body.WidthPx * 0.9f, body.LengthPx * 0.08f), SpriteEffects.None, 0f);
         _spriteBatch.End();
     }
 
@@ -487,11 +513,18 @@ public sealed class SpyGame : Game
             // WI-026: the same, among traffic, three seeds: does it still get away, does it pass, does the traffic flow both
             // ways, and does any traffic car stand caught (its box not fitting) or still?
 
+            foreach (var tr in Train.On(_view.Stage.World, _view.RoadScene, _view.HeightPxAt))
+            {
+                double t = 0, ends = 0; bool wasWaiting = false;
+                while (t < 120) { tr.Step(1 / 60.0); t += 1 / 60.0; if (tr.Waiting && !wasWaiting) ends++; wasWaiting = tr.Waiting; }
+                _report.Add(FormattableString.Invariant($"train: line {tr.LengthPx / ppm:0} m, {tr.Vehicles.Count} vehicles; in 120 s it reached an end {ends} times; at ({tr.Vehicles[0].Car.Position.X / world.Project.CellSize:0.0}, {tr.Vehicles[0].Car.Position.Y / world.Project.CellSize:0.0}) cells, height {tr.Vehicles[0].Car.HeightPx:0}"));
+            }
             if (_trips is { Empty: false })
                 for (int seed = 1; seed <= 3; seed++)
                 {
                     var busy = MakeChase();
                     busy.UseTraffic(_trips, Traffic.Cars, seed);
+                    busy.UseTrains(Train.On(_view.Stage.World, _view.RoadScene, _view.HeightPxAt));
                     int same = 0, oncoming = 0;
                     foreach (var v in busy.Traffic)
                     {
@@ -512,7 +545,7 @@ public sealed class SpyGame : Game
                         }
                     }
                     int still = busy.Traffic.Count(v => v.StillFor > 3);
-                    _report.Add(FormattableString.Invariant($"traffic seed {seed} ({_trips.Exits} exits): {placed} cars ({same} on the target's way going with it, {oncoming} oncoming); target {busy.Outcome ?? "still running"} after {busy.Clock:0.0} s (alone {alone.Clock:0.0}), passing {passing:0.0} s, spun by traffic {(busy.Target.Spinning ? "now" : "not now")}; contacts among cars {busy.OtherContacts}, replaced {busy.Replaced}, standing still at the end {still}, caught car-frames {caughtCars}, cruising {slowest * 3.6:0}-{fastest * 3.6:0} km/h"));
+                    _report.Add(FormattableString.Invariant($"traffic seed {seed} ({_trips.Exits} exits): {placed} cars ({same} on the target's way going with it, {oncoming} oncoming); target {busy.Outcome ?? "still running"} after {busy.Clock:0.0} s (alone {alone.Clock:0.0}), passing {passing:0.0} s, spun by traffic {(busy.Target.Spinning ? "now" : "not now")}; contacts among cars {busy.OtherContacts}, with the train {busy.TrainContacts}, replaced {busy.Replaced}, standing still at the end {still}, caught car-frames {caughtCars}, cruising {slowest * 3.6:0}-{fastest * 3.6:0} km/h"));
                 }
             // His first drive: after a restart the car went through everything and the pickup could be stopped only once.
             // Three chases in a row on the island, a rammer at the wheel: how each ends, and frames either car sat "caught"
