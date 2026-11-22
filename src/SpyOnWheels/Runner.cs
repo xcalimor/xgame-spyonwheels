@@ -49,6 +49,9 @@ public sealed class Runner
         for (float d = 5; d <= BendLookMetres; d += 5)
             turn = Math.Max(turn, Math.Abs(MathHelper.WrapAngle(_route.HeadingAt(Along + d * m) - here)));
         double target = CruiseMs * (1 - BendSlowdown * Math.Min(1, turn / MathHelper.PiOver2));
+        // WI-022: a car that turns slower than the sports car (the pickup) takes a bend slower in the same share, so it turns
+        // as tightly; the straight keeps the cruise.
+        if (turn > 0.05f) target *= Math.Min(1, car.Handling.TurnFastRad / Car.TurnFastRad);
         // Far off its aim (pushed round, or after a spin) it slows to get its nose back first.
         if (Math.Abs(off) > 1.0) target = Math.Min(target, 12);
         bool throttle = car.SpeedMs < target - 0.5;

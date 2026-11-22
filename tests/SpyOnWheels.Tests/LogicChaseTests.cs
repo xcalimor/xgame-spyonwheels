@@ -32,7 +32,8 @@ public class LogicChaseTests
     private static ChaseTarget Runner(string name, Route route, double startM, bool loop = false)
     {
         var at = route.PointAt(M(startM));
-        return new ChaseTarget(name, route, loop, (at, route.HeadingAt(M(startM)), 0f), Body);
+        // Equal cars (WI-022): these tests hold the chase's rules, not the masses (HandlingTests does).
+        return new ChaseTarget(name, route, loop, (at, route.HeadingAt(M(startM)), 0f), Body, Handling.SportsCar);
     }
 
     private static Chase ChaseWith(params ChaseTarget[] targets) =>

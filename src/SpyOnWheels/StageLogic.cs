@@ -8,8 +8,9 @@ using XGame.WorldScene;
 
 namespace SpyOnWheels;
 
-/// <summary>A placed vehicle the game drives: its id, its name (the theme item's), its picture as the scene found it, its box.</summary>
-public sealed record StageCar(string Id, string Name, PlacedPicture Picture, CarBody Body)
+/// <summary>A placed vehicle the game drives: its id, its name (the theme item's), its picture as the scene found it, its box,
+/// and its handling by its theme item (WI-022).</summary>
+public sealed record StageCar(string Id, string Name, PlacedPicture Picture, CarBody Body, Handling Handling)
 {
     /// <summary>Where it was placed and which way it faces (the picture's nose is the car's: 0 north, clockwise).</summary>
     public (Vector2 At, float Heading) Pose => (Picture.At, Picture.Turn);
@@ -59,7 +60,7 @@ public sealed class StageLogic
             if (!things.TryGetValue(id, out var thing)) return null;
             foreach (var pic in pictures)
                 if (pic.Id == id)
-                    return new StageCar(id, themes.Find(thing.Theme)?.Items.FirstOrDefault(i => i.ItemId == thing.Item)?.Name ?? thing.Item, pic, BodyOf(pic));
+                    return new StageCar(id, themes.Find(thing.Theme)?.Items.FirstOrDefault(i => i.ItemId == thing.Item)?.Name ?? thing.Item, pic, BodyOf(pic), Handling.For(thing.Item));
             return null;
         }
 

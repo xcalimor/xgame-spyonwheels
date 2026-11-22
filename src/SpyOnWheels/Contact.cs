@@ -22,7 +22,7 @@ public readonly record struct ContactResult(ContactKind Kind, double ClosingMs, 
 /// <see cref="SpinOutYawRadS"/> it spins out instead of wobbling.</item>
 /// <item>**Side**: drawn alongside, then steered in: the target is thrown sideways, not turned.</item>
 /// </list>
-/// The push itself is a near-plastic exchange of momentum between equal cars along the contact's line. Every number here is
+/// The push itself is a near-plastic exchange of momentum along the contact's line, weighed by the two cars' masses (WI-022). Every number here is
 /// a first guess, to be found in play (vision §11).
 /// </summary>
 public static class Contact
@@ -39,6 +39,12 @@ public static class Contact
     public const double RearSpinClosingMs = 14;  // from behind, closing this fast spins the target whatever the offset
     public const double PushDamage = 6;          // health per push, attacker
     public const double DamagePerMs = 0.5;       // plus this per m/s the struck car was faster (the slower car takes more)
+
+    /// <summary>WI-022: how much harder a struck car turns for the masses: 1 between equals, more when the attacker is the
+    /// heavier (a light car is spun more easily), less when it is the lighter. Softened (the square root of the mass share): the
+    /// full share made the pickup unstoppable from behind on a straight (WI-022 measure: the first hit lands at 64 km/h closing,
+    /// the full share asks 67), which would have turned his chase into one nobody wins.</summary>
+    public static double MassTurn(double attackerKg, double struckKg) => Math.Sqrt(2 * attackerKg / (attackerKg + struckKg));
 
     /// <summary>Where on <paramref name="struck"/> the contact lands and how far apart the cars face, read into a kind.
     /// <paramref name="normal"/> points from the struck car toward the attacker.</summary>
@@ -65,10 +71,13 @@ public static class Contact
         if (closing < MinClosingMs) return null;
         var kind = Classify(attacker, struck, normal);
         double faster = Math.Max(0, struck.Velocity.Length() - attacker.Velocity.Length());   // before the push changes them
-        double j =closing * (1 + Restitution) / 2;   // equal masses
+        // WI-022 mass: the impulse of two masses meeting; each car's change of speed is the impulse over its own mass, so
+        // the heavier car shoves the lighter further and is shoved less itself (equal masses: half the closing each, as before).
+        double ma = attacker.Handling.MassKg, ms = struck.Handling.MassKg;
+        double j = closing * (1 + Restitution) * ma * ms / (ma + ms);
         double throwShare = kind == ContactKind.Side ? SideThrow : 1;
-        struck.Push(-normal * (float)(j * throwShare));
-        attacker.Push(normal * (float)j);
+        struck.Push(-normal * (float)(j / ms * throwShare));
+        attacker.Push(normal * (float)(j / ma));
 
         // Which way the struck car turns: the push on it, acting where the attacker's centre lies off its own.
         var lever = (attacker.Position - struck.Position);
@@ -83,8 +92,8 @@ public static class Contact
             ContactKind.Angled => AngledYawPerMs * closing * Math.Max(0.25, Math.Sin(apart)),
             ContactKind.Side => SideYawPerMs * closing,
             _ => 0,
-        } * sign;
-        bool spin = kind != ContactKind.Frontal && (Math.Abs(yaw) > SpinOutYawRadS || (kind == ContactKind.Rear && closing >= RearSpinClosingMs));
+        } * sign * MassTurn(ma, ms);
+        bool spin = kind != ContactKind.Frontal && (Math.Abs(yaw) > SpinOutYawRadS || (kind == ContactKind.Rear && closing * MassTurn(ma, ms) >= RearSpinClosingMs));   // WI-022: a heavier target takes a harder hit to spin
         if (spin && Math.Abs(yaw) < SpinOutYawRadS) yaw = SpinOutYawRadS * sign;
         struck.Kick(yaw, spin);
 

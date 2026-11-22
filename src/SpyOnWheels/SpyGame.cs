@@ -75,7 +75,7 @@ public sealed class SpyGame : Game
         if (_logic is not null) _view.Moving.UnionWith(_logic.Moving);
         var (at, heading) = _logic?.Hero is { } hero ? hero.Pose : StartOf(stage.World, _view.RoadScene);
         _start = at;
-        _car = new Car(at, heading, stage.World.Project.EffectivePxPerMetre);
+        _car = new Car(at, heading, stage.World.Project.EffectivePxPerMetre, _logic?.Hero?.Handling);   // WI-022: the Hero's car type
         // WI-016: the world as the car feels it, the car's box, and the start it sinks back to.
         _drive = new DriveWorld(stage.World, _view.RoadScene, _view.Placed, _view.PictureSize, _view.Moving);
         _body = _logic?.Hero?.Body ?? BodyOf(stage.World, HeroAssetName, _carSprite?.Rect);
@@ -90,9 +90,9 @@ public sealed class SpyGame : Game
         _report.AddRange(stage.Describe());
         if (_logic is { } l)
         {
-            _report.Add($"logic: mission {l.Mission ?? "(default)"}; hero {(l.Hero is { } h ? FormattableString.Invariant($"{h.Name} at ({h.Pose.At.X:0}, {h.Pose.At.Y:0}) px facing {MathHelper.ToDegrees(h.Pose.Heading):0} deg, box {h.Body.LengthPx / stage.World.Project.EffectivePxPerMetre:0.00} x {h.Body.WidthPx / stage.World.Project.EffectivePxPerMetre:0.00} m") : "NONE")}");
+            _report.Add($"logic: mission {l.Mission ?? "(default)"}; hero {(l.Hero is { } h ? FormattableString.Invariant($"{h.Name} at ({h.Pose.At.X:0}, {h.Pose.At.Y:0}) px facing {MathHelper.ToDegrees(h.Pose.Heading):0} deg, handling {h.Handling.Name} {h.Handling.MassKg:0} kg, box {h.Body.LengthPx / stage.World.Project.EffectivePxPerMetre:0.00} x {h.Body.WidthPx / stage.World.Project.EffectivePxPerMetre:0.00} m") : "NONE")}");
             foreach (var r in l.Runners)
-                _report.Add(FormattableString.Invariant($"logic: runner {r.Car.Name} at ({r.Car.Pose.At.X:0}, {r.Car.Pose.At.Y:0}) px: {(r.Route is { } rt ? $"route {rt.Length / stage.World.Project.EffectivePxPerMetre:0} m{(r.Loop ? " (loop)" : "")}" : "no route, parked")}"));
+                _report.Add(FormattableString.Invariant($"logic: runner {r.Car.Name} ({r.Car.Handling.Name} {r.Car.Handling.MassKg:0} kg) at ({r.Car.Pose.At.X:0}, {r.Car.Pose.At.Y:0}) px: {(r.Route is { } rt ? $"route {rt.Length / stage.World.Project.EffectivePxPerMetre:0} m{(r.Loop ? " (loop)" : "")}" : "no route, parked")}"));
         }
         _report.Add(_logic?.Hero is { } lh ? $"hero: {lh.Name}, the placed vehicle picture {Path.GetFileName(lh.Picture.File)}"
             : $"hero: {(_carSprite is { } s ? $"{HeroAssetName} {s.Rect.Width}x{s.Rect.Height} px from {s.SourceFile}" : "MISSING - drawn as a box")}");
@@ -142,7 +142,7 @@ public sealed class SpyGame : Game
         double ppm = world.Project.EffectivePxPerMetre;
         if (_logic is { } l && l.Fleeing.Any())
             return new Chase(_drive, ppm, _homePose, _body, l.Fleeing.Select(r => new ChaseTarget(r.Car.Name, r.Route!, r.Loop,
-                (r.Car.Pose.At, r.Car.Pose.Heading, _view.HeightPxAt(r.Car.Pose.At)), r.Car.Body)).ToList(), world.Project.EffectiveCellHeight);
+                (r.Car.Pose.At, r.Car.Pose.Heading, _view.HeightPxAt(r.Car.Pose.At)), r.Car.Body, r.Car.Handling)).ToList(), world.Project.EffectiveCellHeight, l.Hero?.Handling);
         return new Chase(_route!, _drive, ppm, _body, BodyOf(world, TargetAssetName, _targetSprite?.Rect), _view.HeightPxAt, world.Project.EffectiveCellHeight);
     }
 

@@ -8,8 +8,8 @@ namespace SpyOnWheels;
 public enum ChaseState { Running, Won, Lost }
 
 /// <summary>A car the player must stop, as a chase is given it: its name (the HUD's), its route, whether the route loops (no
-/// end to get away to), where it starts and its box.</summary>
-public sealed record ChaseTarget(string Name, Route Route, bool Loop, (Vector2 At, float Heading, float HeightPx) Start, CarBody Body);
+/// end to get away to), where it starts, its box, and its handling (WI-022; by its name when not given).</summary>
+public sealed record ChaseTarget(string Name, Route Route, bool Loop, (Vector2 At, float Heading, float HeightPx) Start, CarBody Body, Handling? Handling = null);
 
 /// <summary>One fleeing car in a running chase: the car, its driver, its border, and whether it has been stopped.</summary>
 public sealed class Fugitive
@@ -60,7 +60,7 @@ public sealed class Chase
 
     /// <summary>WI-020: the stage's one route: the player near its start, the target ahead on it.</summary>
     public Chase(Route route, IDriveWorld world, double pxPerMetre, CarBody playerBody, CarBody targetBody,
-        Func<Vector2, float> heightAt, float levelPx)
+        Func<Vector2, float> heightAt, float levelPx, Handling? playerHandling = null)
     {
         _world = world;
         _ppm = pxPerMetre;
@@ -72,13 +72,13 @@ public sealed class Chase
         PlayerStart = (at, route.HeadingAt(startAlong), heightAt(at));
         float targetAlong = (float)Math.Min(route.Length * 0.3, startAlong + TargetLeadMetres * pxPerMetre);
         var tat = route.PointAt(targetAlong);
-        Player = new Car(PlayerStart.At, PlayerStart.Heading, pxPerMetre) { HeightPx = PlayerStart.HeightPx };
+        Player = new Car(PlayerStart.At, PlayerStart.Heading, pxPerMetre, playerHandling) { HeightPx = PlayerStart.HeightPx };
         Targets = new List<Fugitive> { Make(new ChaseTarget(SpyGame.TargetAssetName, route, false, (tat, route.HeadingAt(targetAlong), heightAt(tat)), targetBody), targetAlong) };
     }
 
     /// <summary>FEAT-009 S4: the player at <paramref name="playerStart"/>, each target at its own start on its own route.</summary>
     public Chase(IDriveWorld world, double pxPerMetre, (Vector2 At, float Heading, float HeightPx) playerStart, CarBody playerBody,
-        IReadOnlyList<ChaseTarget> targets, float levelPx)
+        IReadOnlyList<ChaseTarget> targets, float levelPx, Handling? playerHandling = null)
     {
         if (targets.Count == 0) throw new ArgumentException("a chase has at least one target", nameof(targets));
         _world = world;
@@ -86,13 +86,13 @@ public sealed class Chase
         PlayerBody = playerBody;
         _levelTolerancePx = DriveWorld.StepLevels * levelPx;
         PlayerStart = playerStart;
-        Player = new Car(playerStart.At, playerStart.Heading, pxPerMetre) { HeightPx = playerStart.HeightPx };
+        Player = new Car(playerStart.At, playerStart.Heading, pxPerMetre, playerHandling) { HeightPx = playerStart.HeightPx };
         Targets = targets.Select(t => Make(t, t.Route.Project(t.Start.At))).ToList();
     }
 
     private Fugitive Make(ChaseTarget t, float along)
     {
-        var car = new Car(t.Start.At, t.Start.Heading, _ppm) { HeightPx = t.Start.HeightPx };
+        var car = new Car(t.Start.At, t.Start.Heading, _ppm, t.Handling ?? Handling.For(t.Name)) { HeightPx = t.Start.HeightPx };
         float border = t.Loop ? float.PositiveInfinity : (float)Math.Max(t.Route.Length * 0.5, t.Route.Length - BorderBeforeEndMetres * _ppm);
         return new Fugitive(t, car, new Runner(t.Route, _ppm, along), border);
     }

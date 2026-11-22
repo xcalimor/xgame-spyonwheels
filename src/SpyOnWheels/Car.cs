@@ -33,7 +33,8 @@ public readonly record struct Traction(double Grip, double DragPerS, double MaxD
 
 public sealed class Car
 {
-    // The tuning: a first guess for the skeleton's feel, to be felt and changed.
+    // The tuning: a first guess for the skeleton's feel, to be felt and changed. Since WI-022 these are the sports car's
+    // (Handling.SportsCar); a car drives by its own Handling.
     public const double TopSpeedMs = 46.0;        // ~165 km/h (WI-017 his drive: "the speed could be a bit higher"; was 38)
     public const double ReverseSpeedMs = 6.0;
     public const double AccelerationMs2 = 16.0;    // WI-018 D3 "an aggressive sports car": 0-165 km/h in ~3 s (was 9)
@@ -55,11 +56,15 @@ public sealed class Car
 
     private readonly double _pxPerMetre;
 
-    public Car(Vector2 position, float heading, double pxPerMetre)
+    /// <summary>The car type's numbers (WI-022); the sports car unless given.</summary>
+    public Handling Handling { get; }
+
+    public Car(Vector2 position, float heading, double pxPerMetre, Handling? handling = null)
     {
         Position = position;
         Heading = heading;
         _pxPerMetre = pxPerMetre;
+        Handling = handling ?? Handling.SportsCar;
     }
 
     /// <summary>World px.</summary>
@@ -95,22 +100,22 @@ public sealed class Car
         }
         _looseFor = Math.Max(0, _looseFor - dt);
         double v = SpeedMs;
-        if (drive.Throttle) v = v < 0 ? Math.Min(0, v + BrakeMs2 * dt) : Math.Min(TopSpeedMs, v + AccelerationMs2 * dt);
-        else if (drive.Brake) v = v > 0 ? Math.Max(0, v - BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - AccelerationMs2 * 0.5 * dt);
+        if (drive.Throttle) v = v < 0 ? Math.Min(0, v + Handling.BrakeMs2 * dt) : Math.Min(Handling.TopSpeedMs, v + Handling.AccelerationMs2 * dt);
+        else if (drive.Brake) v = v > 0 ? Math.Max(0, v - Handling.BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - Handling.AccelerationMs2 * 0.5 * dt);
         else v = v > 0 ? Math.Max(0, v - RollDragMs2 * dt) : Math.Min(0, v + RollDragMs2 * dt);
-        v -= v * Ground.DragPerS * dt;   // off the road the ground holds the car back (WI-019 D2)
+        v -= v * Ground.DragPerS * Handling.OffRoadDragScale * dt;   // off the road the ground holds the car back (WI-019 D2)
         SpeedMs = v;
 
         double speed = Math.Abs(v);
-        double share = Math.Min(1.0, speed / TopSpeedMs);
-        double rate = TurnSlowRad + (TurnFastRad - TurnSlowRad) * share;
+        double share = Math.Min(1.0, speed / Handling.TopSpeedMs);
+        double rate = Handling.TurnSlowRad + (Handling.TurnFastRad - Handling.TurnSlowRad) * share;
         rate *= Math.Min(1.0, speed / TurnFullFromMs);
         bool steering = Math.Abs(drive.Steer) > 0.01f && speed > 0;
         if (drive.Throttle && steering) rate *= PowerTurnBoost;
         TurnTo(WrapAngle(Heading + (float)(Math.Clamp(drive.Steer, -1f, 1f) * rate * dt * Math.Sign(v))));
 
         // The tyres: pull the slide back toward the nose, up to the grip; most of what they take becomes forward speed.
-        double grip = (drive.Throttle && steering ? GripPowerMs2 : GripMs2) * Ground.Grip * dt;
+        double grip = (drive.Throttle && steering ? Handling.GripPowerMs2 : Handling.GripMs2) * Ground.Grip * dt;
         if (Loose) grip = LooseGripMs2 * dt;
         double take = Math.Min(Math.Abs(SlipMs), grip);
         SlipMs -= Math.Sign(SlipMs) * take;
@@ -118,10 +123,10 @@ public sealed class Car
         // sideways instead: no cap, and what the tyres take is scrubbed, never turned into forward speed.
         double maxSlip = Math.Tan(MathHelper.ToRadians((float)Ground.MaxDriftDeg)) * Math.Abs(SpeedMs);
         if (!Loose && Math.Abs(SlipMs) > maxSlip) { take += Math.Abs(SlipMs) - maxSlip; SlipMs = Math.Sign(SlipMs) * maxSlip; }
-        if (SpeedMs != 0 && !Loose) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, TopSpeedMs);
+        if (SpeedMs != 0 && !Loose) SpeedMs = Math.Clamp(SpeedMs + Math.Sign(SpeedMs) * take * GripKeepsSpeed, -ReverseSpeedMs, Handling.TopSpeedMs);
         // Nose and slide together never pass the top speed.
         double total = Math.Sqrt(SpeedMs * SpeedMs + SlipMs * SlipMs);
-        if (total > TopSpeedMs) { SpeedMs *= TopSpeedMs / total; SlipMs *= TopSpeedMs / total; }
+        if (total > Handling.TopSpeedMs) { SpeedMs *= Handling.TopSpeedMs / total; SlipMs *= Handling.TopSpeedMs / total; }
         return Velocity * (float)(_pxPerMetre * dt);
     }
 
