@@ -83,7 +83,8 @@ public static class Driving
             }
         }
         car.Slow(keep);
-        car.Climb((car.HeightPx - heightBefore) / pxPerMetre);   // WI-028: uphill costs speed, downhill gives it
+        if (!car.Airborne) car.Climb((car.HeightPx - heightBefore) / pxPerMetre);   // WI-028: uphill costs speed, downhill gives it (on the ground)
+        car.FollowGround((car.HeightPx - heightBefore) / pxPerMetre, dt);   // WI-029: over a crest at speed it leaves the ground
 
         if (world.SurfaceNear(car.Position, car.HeightPx) is { Kind: SurfaceKind.Water })
         {

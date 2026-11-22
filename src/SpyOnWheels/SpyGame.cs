@@ -39,6 +39,19 @@ public sealed class SpyGame : Game
     public const double ZoomPerLevel = 0.06, ScalePerLevel = 0.03, HeightEaseSeconds = 0.4;
     private float LevelPx => _view.Stage.World.Project.EffectiveCellHeight;
     private float HeightScale(float heightPx) => 1f + (float)(ScalePerLevel * heightPx / LevelPx);
+    /// <summary>WI-029: a car in the air is drawn bigger still (nearer the camera) and its shadow parts from it.</summary>
+    public const double AirScalePerMetre = 0.12, ShadowPerMetre = 1.6;
+    private float CarScale(Car car) => HeightScale(car.HeightPx) * (1f + (float)(AirScalePerMetre * car.AirMetres));
+
+    /// <summary>WI-029: the shadow of a car in the air, on the ground under it, moved away from the light as it rises.</summary>
+    private void DrawAirShadow(Car car, Vector2 sizePx)
+    {
+        if (car.AirMetres < 0.02) return;
+        _pixel ??= MakePixel();
+        float ppm = (float)_view.Stage.World.Project.EffectivePxPerMetre;
+        var at = car.Position + new Vector2(0.6f, 0.8f) * (float)(car.AirMetres * ShadowPerMetre * ppm);
+        _spriteBatch.Draw(_pixel, at, null, Color.Black * 0.4f, car.Heading, new Vector2(0.5f), sizePx * HeightScale(car.HeightPx) * 0.85f, SpriteEffects.None, 0f);
+    }
     /// <summary>WI-017: the camera zooms out with speed.</summary>
     private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
 
@@ -225,7 +238,7 @@ public sealed class SpyGame : Game
             _events[happened] = _events.GetValueOrDefault(happened) + 1;
         }
         _camera.Update(_car.SpeedMs, dt, _car.Forward, new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height));
-        _heightLevels += (_car.HeightPx / LevelPx - _heightLevels) * (1 - Math.Exp(-dt / HeightEaseSeconds));
+        _heightLevels += ((_car.HeightPx + _car.AirMetres * _view.Stage.World.Project.EffectivePxPerMetre) / LevelPx - _heightLevels) * (1 - Math.Exp(-dt / HeightEaseSeconds));
         if (_drive.SurfaceNear(_car.Position, _car.HeightPx) is { Kind: SurfaceKind.Deck }) _onDeckSeconds += dt;
         _clock += dt;
         base.Update(gameTime);
@@ -293,15 +306,16 @@ public sealed class SpyGame : Game
     {
         _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.LinearClamp,
             transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
+        DrawAirShadow(car, sprite is { } r ? new Vector2(r.Rect.Width, r.Rect.Height) : new Vector2(150, 300));
         if (sprite is { } s)
         {
             var texture = _view.Picture(s.SourceFile);
-            _spriteBatch.Draw(texture, car.Position, s.Rect, Color.White, car.Heading, new Vector2(s.Rect.Width / 2f, s.Rect.Height / 2f), HeightScale(car.HeightPx), SpriteEffects.None, 0f);
+            _spriteBatch.Draw(texture, car.Position, s.Rect, Color.White, car.Heading, new Vector2(s.Rect.Width / 2f, s.Rect.Height / 2f), CarScale(car), SpriteEffects.None, 0f);
         }
         else
         {
             _pixel ??= MakePixel();
-            _spriteBatch.Draw(_pixel, car.Position, null, fallback, car.Heading, new Vector2(0.5f), new Vector2(150, 300) * HeightScale(car.HeightPx), SpriteEffects.None, 0f);
+            _spriteBatch.Draw(_pixel, car.Position, null, fallback, car.Heading, new Vector2(0.5f), new Vector2(150, 300) * CarScale(car), SpriteEffects.None, 0f);
         }
         _spriteBatch.End();
     }
@@ -314,7 +328,8 @@ public sealed class SpyGame : Game
         catch (Exception) { DrawCar(camera, viewport, car, null, tint ?? Color.Silver); return; }
         _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, samplerState: SamplerState.LinearClamp,
             transformMatrix: camera.AtHeight(car.HeightPx, viewport).ViewMatrix(viewport));
-        var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height) * HeightScale(car.HeightPx);
+        DrawAirShadow(car, picture.SizePx);
+        var scale = new Vector2(picture.SizePx.X / texture.Width, picture.SizePx.Y / texture.Height) * CarScale(car);
         _spriteBatch.Draw(texture, car.Position, null, tint ?? Color.White, car.Heading, new Vector2(texture.Width / 2f, texture.Height / 2f), scale, SpriteEffects.None, 0f);
         _spriteBatch.End();
     }
@@ -501,6 +516,7 @@ public sealed class SpyGame : Game
             _report.Add(FormattableString.Invariant($"route: {_route.Length / ppm:0} m, {_route.Points.Count} points, from ({_route.Points[0].X / world.Project.CellSize:0.0}, {_route.Points[0].Y / world.Project.CellSize:0.0}) to ({_route.Points[^1].X / world.Project.CellSize:0.0}, {_route.Points[^1].Y / world.Project.CellSize:0.0}) cells"));
             var alone = MakeChase();   // S4: from the logic when marked
             _report.Add(FormattableString.Invariant($"border at {alone.BorderAlong / ppm:0} m along; target starts {(alone.Runner.Along) / ppm:0} m along; target {(_logic is not null ? alone.Targets[0].Name : _targetSprite is null ? "MISSING - a box" : TargetAssetName)}"));
+            int jumps = 0; double airTop = 0; bool wasAir = false;   // WI-029
             float worstOff = 0; double offRoad = 0, topKmh = 0, lastOff = 0, joinedAt = -1;   // S4: a Runner placed beside its route is off its line until it joins it
             var offAt = new List<string>();
             var parked = new Drive(false, false, 0);
@@ -517,12 +533,14 @@ public sealed class SpyGame : Game
                     offRoad += 1 / 60.0;
                 }
                 topKmh = Math.Max(topKmh, alone.Target.SpeedMs * 3.6);
+                if (alone.Target.Airborne && !wasAir) { jumps++; _report.Add(FormattableString.Invariant($"  target jumps at {alone.Runner.Along / ppm:0} m along, {alone.Target.Velocity.Length() * 3.6:0} km/h, up at {alone.Target.VzMs:0.0} m/s")); }
+                wasAir = alone.Target.Airborne; airTop = Math.Max(airTop, alone.Target.AirMetres);
                 // S4: where the lone target is every 5 s (a stage whose runner stalls says where and on what).
                 if (Math.Abs(alone.Clock % 5) < 0.5 / 60.0 && alone.Clock > 0.1)
                     _report.Add(FormattableString.Invariant($"  target at {alone.Clock:0} s: {alone.Runner.Along / ppm:0} m along, {alone.Target.SpeedMs * 3.6:0} km/h, ({alone.Target.Position.X / world.Project.CellSize:0.0}, {alone.Target.Position.Y / world.Project.CellSize:0.0}) cells, height {alone.Target.HeightPx:0}, aim ({alone.Runner.Aim.X / world.Project.CellSize:0.0}, {alone.Runner.Aim.Y / world.Project.CellSize:0.0}), on {_drive.Describe(alone.Target.Position)}"));
             }
             runnerOk = alone.Outcome == "IT GOT AWAY" && joinedAt >= 0 && worstOff / ppm < 4;
-            _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, on its line after {joinedAt:0.0} s, furthest off it since {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s => {(runnerOk ? "ok" : "BAD")}"));
+            _report.Add(FormattableString.Invariant($"target alone: {alone.Outcome ?? "still running"} after {alone.Clock:0.0} s, top {topKmh:0} km/h, on its line after {joinedAt:0.0} s, furthest off it since {worstOff / ppm:0.0} m, off the road {offRoad:0.0} s, jumps {jumps} (highest {airTop:0.00} m) => {(runnerOk ? "ok" : "BAD")}"));
             if (offAt.Count > 0) _report.Add("  left the road at: " + string.Join(", ", offAt));
             // WI-026: the same, among traffic, three seeds: does it still get away, does it pass, does the traffic flow both
             // ways, and does any traffic car stand caught (its box not fitting) or still?

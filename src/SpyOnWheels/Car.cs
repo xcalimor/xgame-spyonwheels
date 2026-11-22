@@ -91,6 +91,8 @@ public sealed class Car
     {
         if (dt <= 0) return Vector2.Zero;
         if (Spinning) return AdvanceSpinning(dt);
+        _lastSteer = drive.Steer;
+        if (Airborne) return Velocity * (float)(_pxPerMetre * dt);   // WI-029: in the air nothing the driver does takes
         // WI-020: a wobble turns the nose by itself for a moment; the driver keeps the wheel.
         if (YawRadS != 0)
         {
@@ -198,6 +200,74 @@ public sealed class Car
         YawRadS = 0;
         Spinning = false;
         _looseFor = 0;
+        Airborne = false; AirMetres = 0; VzMs = 0; _groundVzMs = 0;
+    }
+
+    // ---- WI-029 crests and jumps (his ask: "a small jump when going max speed up a slope and the slope ends ... to make
+    // it harder to control the car. This will force the driver to slow down not to jump") ----
+
+    public const double JumpFromMs = 30;           // ~108 km/h: slower than this a car keeps to the ground over any crest
+    public const double MaxLaunchMs = 5;           // straight up, at its top speed: ~0.6 m high, ~0.5 s, ~20 m long
+    public const double CrestFromMs = 2;           // the ground was rising at least this fast under it (a climb)...
+    public const double CrestDropShare = 0.5;      // ...and now rises at less than this share of that: the slope ended
+    public const double AirGravityMs2 = 2 * GravityMs2;   // arcade: a short hop, not a float
+    public const double LandLooseSeconds = 0.35;   // after landing the tyres skid this long (a full-height landing)
+    public const double LandKeep = 0.96;           // and the landing costs this share of the speed
+    public const double LandSteerKickRadS = 1.2;   // steering held in the air turns the car this hard as it lands
+
+    private double _groundVzMs;
+    private float _lastSteer;
+
+    /// <summary>Off the ground (a jump over a crest): no throttle, brakes or steering until it lands.</summary>
+    public bool Airborne { get; private set; }
+
+    /// <summary>How high above the ground under it, metres (0 on the ground).</summary>
+    public double AirMetres { get; private set; }
+
+    /// <summary>Its own vertical speed while in the air, m/s (up positive).</summary>
+    public double VzMs { get; private set; }
+
+    /// <summary>
+    /// The ground under the car rose <paramref name="riseMetres"/> this step (the driving says so): on the ground the car
+    /// follows it, unless it was climbing fast and the climb just ended, at more than <see cref="JumpFromMs"/>, where it
+    /// leaves the ground in proportion to how much faster it went. In the air it flies (its own vertical speed, under
+    /// <see cref="AirGravityMs2"/>) until it meets the ground again.
+    /// </summary>
+    public void FollowGround(double riseMetres, double dt)
+    {
+        if (dt <= 0) return;
+        double groundVz = riseMetres / dt;
+        if (Airborne)
+        {
+            AirMetres += VzMs * dt - riseMetres;
+            VzMs -= AirGravityMs2 * dt;
+            if (AirMetres <= 0) Land();
+        }
+        else
+        {
+            double speed = Velocity.Length();
+            bool crest = _groundVzMs > CrestFromMs && groundVz < _groundVzMs * CrestDropShare;
+            if (crest && speed > JumpFromMs)
+            {
+                double share = Math.Clamp((speed - JumpFromMs) / Math.Max(1, Handling.TopSpeedMs - JumpFromMs), 0, 1);
+                VzMs = MaxLaunchMs * share;
+                AirMetres = VzMs * dt;
+                Airborne = AirMetres > 0;
+            }
+        }
+        _groundVzMs = Airborne ? 0 : groundVz;
+    }
+
+    private void Land()
+    {
+        double impact = Math.Clamp(-VzMs / MaxLaunchMs, 0, 1.5);
+        Airborne = false;
+        AirMetres = 0;
+        VzMs = 0;
+        SpeedMs *= LandKeep;
+        SlipMs *= LandKeep;
+        _looseFor = Math.Max(_looseFor, LandLooseSeconds * impact);
+        YawRadS += _lastSteer * LandSteerKickRadS * impact;
     }
 
     // ---- WI-020 contact: pushed, wobbling, spun out ----
