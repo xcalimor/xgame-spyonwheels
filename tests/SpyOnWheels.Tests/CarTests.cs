@@ -139,7 +139,7 @@ public class CarTests
             car.Step(new Drive(true, false, 1), Dt);
             worst = Math.Max(worst, Math.Atan2(Math.Abs(car.SlipMs), Math.Abs(car.SpeedMs)) * 180 / Math.PI);
         }
-        Assert.True(worst > 15, $"drifted only {worst:0} deg");
+        Assert.True(worst > 8, $"drifted only {worst:0} deg");   // WI-031: a sports car slides only at the limit (11 deg here; 15+ before)
         Assert.True(worst <= 45, $"spun: {worst:0} deg");   // past 45 degrees it is a spin, whatever the tuning
     }
 

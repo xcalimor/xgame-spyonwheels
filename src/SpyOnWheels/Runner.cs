@@ -15,6 +15,7 @@ public sealed class Runner
     public const double BendSlowdown = 0.3;       // a right-angle bend ahead takes this share off the cruise (WI-028 "more aggressive": was 0.45)
     public const double LookMetres = 4, LookSeconds = 0.25;   // a far aim cuts the bends (first run: 23 m ahead cut 24 m bends by ~3 m)
     public const double BendLookMetres = 45;
+    public const double PacedForTurnFastRad = 0.9;   // WI-031: the turn rate at speed the bend pacing was tuned on (the sports car's until WI-031); a car turning slower takes bends slower
     public const double FullSteerRad = 0.35;      // this far off its aim it steers full lock
     public const double OffsetEaseMs = 4;         // WI-026: how fast it moves across to pass, sideways m/s
 
@@ -62,9 +63,9 @@ public sealed class Runner
         for (float d = 5; d <= BendLookMetres; d += 5)
             turn = Math.Max(turn, Math.Abs(MathHelper.WrapAngle(_route.HeadingAt(Along + d * m) - here)));
         double target = Cruise * (1 - BendSlowdown * Math.Min(1, turn / MathHelper.PiOver2));
-        // WI-022: a car that turns slower than the sports car (the pickup) takes a bend slower in the same share, so it turns
+        // WI-022: a car that turns slower than the bend pacing was tuned for (the pickup) takes a bend slower in the same share, so it turns
         // as tightly; the straight keeps the cruise.
-        if (turn > 0.05f) target *= Math.Min(1, car.Handling.TurnFastRad / Car.TurnFastRad);
+        if (turn > 0.05f) target *= Math.Min(1, car.Handling.TurnFastRad / PacedForTurnFastRad);
         // Far off its aim (pushed round, or after a spin) it slows to get its nose back first.
         if (Math.Abs(off) > 1.0) target = Math.Min(target, 12);
         if (capMs is { } cap) target = Math.Min(target, cap);

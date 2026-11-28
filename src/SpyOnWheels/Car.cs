@@ -41,14 +41,14 @@ public sealed class Car
     public const double BrakeMs2 = 50.0;           // WI-018 D3 "more aggressive braking" (22 → 30), his drive "much harder brakes" (→ 50)
     public const double RollDragMs2 = 2.5;         // coasting slows the car
     public const double TurnSlowRad = 2.6;         // turn rate at low speed, rad/s
-    public const double TurnFastRad = 0.9;         // turn rate at top speed
+    public const double TurnFastRad = 1.15;        // turn rate at top speed (WI-031 his "a sports car has good grip, you can steer aggressive": was 0.9)
     public const double PowerTurnBoost = 1.33;     // WI-018 his drive "drift circle a bit too wide": under power the rear steps out and the nose turns this much faster (in a drift the nose sets the circle)
     public const double TurnFullFromMs = 4.0;      // below this the turn rate fades to nothing at standstill
 
     // WI-018 grip (his ask: "if I turn while accelerating the car gets a bit harder to steer"): the car keeps its momentum
     // when the nose turns, and the tyres pull the motion back in line with the nose up to this much sideways, m/s2.
-    public const double GripMs2 = 40.0;            // coasting or braking: holds nearly every turn the steering asks for
-    public const double GripPowerMs2 = 20.0;       // under throttle while turning: half, so it runs wide and slides (D2)
+    public const double GripMs2 = 48.0;            // coasting or braking: holds every turn the steering asks for (WI-031: was 40)
+    public const double GripPowerMs2 = 38.0;       // under throttle while turning: a sports car keeps most of it, slides only at the limit (WI-031: was 20, the half that suits the pickup)
     public const double GripKeepsSpeed = 0.85;     // the share of the sideways speed the tyres turn into forward speed; the rest is scrubbed
 
     /// <summary>What the ground under the car does to it (WI-019, set by <see cref="Driving"/> from the world each step).</summary>
@@ -84,7 +84,7 @@ public sealed class Car
 
     public const double PowerOversteerRadS2 = 16;  // steering while the rear spins swings the tail (and it keeps swinging a moment after)
     public const double BrakeOversteerRadS2 = 4;   // steering while braking hard at top speed: up to ~0.8 rad/s more
-    public const double WheelspinGripLoss = 0.9;   // a full wheelspin takes the grip this far toward a shoved car's loose grip
+    public const double WheelspinGripLoss = 1.6;   // the spin share times this (to at most 1) takes the grip that far toward a shoved car's loose grip: a hard spin has none (WI-031: 0.9 was lost under the sports car's grip)
     public const double BrakeGripLoss = 0.5;       // and full brakes at the top speed this far
 
     /// <summary>The player's car: its wheelspin and its light rear under braking change how it handles. Computer drivers
@@ -155,7 +155,7 @@ public sealed class Car
         {
             // WI-030: a spinning or light rear lets go: steering then swings the tail out (the nose turns further than
             // asked) and the tyres hold the slide less. Steering the other way catches it.
-            double toLoose = 1 - (1 - WheelspinGripLoss * WheelspinShare) * (1 - BrakeGripLoss * BrakeShare);
+            double toLoose = 1 - (1 - Math.Min(1, WheelspinGripLoss * WheelspinShare)) * (1 - BrakeGripLoss * BrakeShare);
             grip += (LooseGripMs2 * dt - grip) * toLoose;
             if (steering)
                 YawRadS += Math.Clamp(drive.Steer, -1f, 1f) * Math.Sign(v) * dt
