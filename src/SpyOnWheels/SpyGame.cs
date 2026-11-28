@@ -52,6 +52,10 @@ public sealed class SpyGame : Game
         var at = car.Position + new Vector2(0.6f, 0.8f) * (float)(car.AirMetres * ShadowPerMetre * ppm);
         _spriteBatch.Draw(_pixel, at, null, Color.Black * 0.4f, car.Heading, new Vector2(0.5f), sizePx * HeightScale(car.HeightPx) * 0.85f, SpriteEffects.None, 0f);
     }
+    /// <summary>WI-021: the rubber the cars leave on the paving.</summary>
+    private readonly TyreMarks _marks = new();
+    private readonly Dictionary<int, List<TyreMark>> _marksByHeight = new();
+    private const float MarkHeightStepPx = 4;   // marks within this of each other in height share one sprite pass
     /// <summary>WI-017: the camera zooms out with speed.</summary>
     private readonly SpeedCamera _camera = new(Car.TopSpeedMs);
 
@@ -154,6 +158,7 @@ public sealed class SpyGame : Game
     private void NewChase()
     {
         _chase = MakeChase();
+        _marks.Clear();   // WI-021: a fresh chase starts on clean roads
         _chase.UseTrains(Train.On(_view.Stage.World, _view.RoadScene, _view.HeightPxAt));   // WI-027
         if (_trafficOn && _trips is { Empty: false }) _chase.UseTraffic(_trips, Traffic.Cars, _options.Shots is not null ? _trafficSeed : Environment.TickCount);
         _car = _chase.Player;
@@ -237,11 +242,64 @@ public sealed class SpyGame : Game
             var happened = Driving.Step(_car, drive, dt, _drive, _body, _view.Stage.World.Project.EffectivePxPerMetre, _startPose);
             _events[happened] = _events.GetValueOrDefault(happened) + 1;
         }
+        WatchTyres(dt);
         _camera.Update(_car.SpeedMs, dt, _car.Forward, new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height));
         _heightLevels += ((_car.HeightPx + _car.AirMetres * _view.Stage.World.Project.EffectivePxPerMetre) / LevelPx - _heightLevels) * (1 - Math.Exp(-dt / HeightEaseSeconds));
         if (_drive.SurfaceNear(_car.Position, _car.HeightPx) is { Kind: SurfaceKind.Deck }) _onDeckSeconds += dt;
         _clock += dt;
         base.Update(gameTime);
+    }
+
+    /// <summary>WI-021: every car's tyres after its step (traffic drives calmly: it marks only when shoved into a slide).</summary>
+    private void WatchTyres(double dt)
+    {
+        _marks.Tick(dt);
+        double ppm = _view.Stage.World.Project.EffectivePxPerMetre;
+        if (_chase is { } c)
+        {
+            _marks.Observe(c.Player, c.PlayerBody, ppm, Paved);
+            foreach (var t in c.Targets) _marks.Observe(t.Car, t.Body, ppm, Paved);
+            foreach (var v in c.Traffic) _marks.Observe(v.Car, v.Body, ppm, Paved, calm: true);
+        }
+        else _marks.Observe(_car, _body, ppm, Paved);
+        _marks.Forget();
+    }
+
+    /// <summary>WI-021: asphalt and decks take marks; grass, sand and water do not.</summary>
+    private bool Paved(Vector2 at, float heightPx) =>
+        _drive.SurfaceNear(at, heightPx) is { Kind: not SurfaceKind.Water } && _drive.TractionAt(at, heightPx) == Traction.Asphalt;
+
+    /// <summary>WI-021: the marks of this height band, flat on its ground, under its sprites and cars; near the view only.</summary>
+    private void DrawTyreMarks(WorldCamera camera, Viewport viewport, (double From, double Below) band, Vector2 focus)
+    {
+        if (_marks.Count == 0) return;
+        _pixel ??= MakePixel();
+        float ppm = (float)_view.Stage.World.Project.EffectivePxPerMetre;
+        float widthPx = (float)(TyreMarks.WidthMetres * ppm), reach = 120 * ppm;
+        foreach (var list in _marksByHeight.Values) list.Clear();
+        foreach (var m in _marks.Marks)
+        {
+            if (m.HeightPx < band.From || m.HeightPx >= band.Below) continue;
+            if (!_overview && Vector2.DistanceSquared(m.From, focus) > reach * reach) continue;
+            int key = (int)MathF.Round(m.HeightPx / MarkHeightStepPx);
+            if (!_marksByHeight.TryGetValue(key, out var list)) _marksByHeight[key] = list = new List<TyreMark>();
+            list.Add(m);
+        }
+        var rubber = new Color(18, 18, 18);
+        foreach (var (key, list) in _marksByHeight)
+        {
+            if (list.Count == 0) continue;
+            _spriteBatch.Begin(blendState: BlendState.NonPremultiplied, transformMatrix: camera.AtHeight(key * MarkHeightStepPx, viewport).ViewMatrix(viewport));
+            foreach (var m in list)
+            {
+                var d = m.To - m.From;
+                float len = d.Length();
+                if (len < 1e-3f) continue;
+                _spriteBatch.Draw(_pixel, m.From, null, rubber * (m.Strength * _marks.Alpha(m)), MathF.Atan2(d.Y, d.X),
+                    new Vector2(0, 0.5f), new Vector2(len + widthPx * 0.3f, widthPx), SpriteEffects.None, 0f);
+            }
+            _spriteBatch.End();
+        }
     }
 
     protected override void Draw(GameTime gameTime)
@@ -291,7 +349,7 @@ public sealed class SpyGame : Game
                 if (_logic?.Hero is { } hero) DrawPictureCar(camera, viewport, _car, hero.Picture);
                 else DrawCar(camera, viewport, _car, _carSprite, Color.Silver);
             }
-        });
+        }, band => DrawTyreMarks(camera, viewport, band, focus));
         if (_chase is not null) DrawHud(viewport);
         base.Draw(gameTime);
         _frame++;
@@ -615,6 +673,7 @@ public sealed class SpyGame : Game
             }
             _report.Add(FormattableString.Invariant($"the scripted drive's chase:{_chase?.Outcome ?? "running"} at {_chase?.Clock:0.0} s; contacts: {string.Join("; ", _chase?.Contacts.Select(h => FormattableString.Invariant($"{h.At:0.0} s {h.Result.Kind} {h.Result.ClosingMs * 3.6:0} km/h spin {h.Result.SpunOut} -{h.Result.Damage:0}")) ?? Array.Empty<string>())}"));
         }
+        _report.Add(FormattableString.Invariant($"tyre marks (WI-021): {_marks.Count} strokes of {_marks.Cap} on the ground after {_marks.Clock:0.0} s"));
         _report.Insert(0, metres > 10 && _view.Stage.Problems.Count == 0 && _carSprite is not null && runnerOk ? "PASS" : "FAIL");
         File.WriteAllLines(Path.Combine(dir, "skeleton-report.txt"), _report);
         _overview = true;   // one more frame: the whole stage from high up, then exit

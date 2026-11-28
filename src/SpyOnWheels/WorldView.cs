@@ -68,8 +68,9 @@ public sealed class WorldView : IDisposable
 
     public (int Width, int Height)? PictureSize(string sourceFile) => _pictures.TryGetSize(sourceFile);
 
-    /// <summary>One frame of the world; <paramref name="movers"/> draws the game's moving things in each height band.</summary>
-    public void Draw(in WorldCamera camera, double clock, Action<(double From, double Below)> movers)
+    /// <summary>One frame of the world; <paramref name="movers"/> draws the game's moving things in each height band, and
+    /// <paramref name="onGround"/> what lies flat on the ground (WI-021 tyre marks), under the band's sprites and cars.</summary>
+    public void Draw(in WorldCamera camera, double clock, Action<(double From, double Below)> movers, Action<(double From, double Below)>? onGround = null)
     {
         var viewport = _device.Viewport;
         var world = Stage.World;
@@ -78,6 +79,7 @@ public sealed class WorldView : IDisposable
         var eye = camera;
         WorldDrawOrder.Draw(camera, viewport, Roads, Terrain, Placed.Renderer, world.Project.EffectiveCellHeight, band =>
         {
+            onGround?.Invoke(band);
             SpriteScene.Draw(_spriteBatch, eye, viewport, order, band, _ => Color.White,
                 p => SpriteScene.Resolve(world, p, _pictures.TryGetSize, clock), _pictures.Get);
             // FEAT-009 S4: parked vehicles, drawn as Xorpheus draws them.

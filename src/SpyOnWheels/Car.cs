@@ -79,6 +79,9 @@ public sealed class Car
     /// <summary>Metres per second sideways, to the right of the heading (WI-018): the slide. Zero when the tyres hold.</summary>
     public double SlipMs { get; private set; }
 
+    /// <summary>What the driver asked of the car on its last step (WI-021).</summary>
+    public Drive LastDrive { get; private set; }
+
     /// <summary>The unit vector the car faces, in world px axes (y down).</summary>
     public Vector2 Forward => new(MathF.Sin(Heading), -MathF.Cos(Heading));
 
@@ -90,6 +93,7 @@ public sealed class Car
     public Vector2 Advance(Drive drive, double dt)
     {
         if (dt <= 0) return Vector2.Zero;
+        LastDrive = drive;   // WI-021: what the driver asked, so the tyre marks can see the tyres working
         if (Spinning) return AdvanceSpinning(dt);
         _lastSteer = drive.Steer;
         if (Airborne) return Velocity * (float)(_pxPerMetre * dt);   // WI-029: in the air nothing the driver does takes
