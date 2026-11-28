@@ -23,7 +23,6 @@ public sealed class TyreMarks
     public const int DefaultCap = 6000;            // strokes kept (~25 s of four wheels sliding); past it the oldest go
     public const double FadeSeconds = 40;          // a mark is gone this long after it was laid...
     public const double HoldShare = 0.5;           // ...and stays full dark for this share of it, then fades out
-    public const double LaunchBelowShare = 0.4;    // "from low speed": throttle below this share of the car's top speed
     public const double BrakeFromMs = 8;           // the brakes held faster than ~29 km/h
     public const double SlideFromMs = 2.5;         // sliding sideways faster than this (a drift, a shove)
     public const double SpinFromMs = 1;            // a spinning car marks while it still moves this fast
@@ -71,7 +70,7 @@ public sealed class TyreMarks
         if (calm) return null;
         var d = car.LastDrive;
         if (d.Brake && car.SpeedMs > BrakeFromMs) return TyreWork.Brake;
-        if (d.Throttle && car.SpeedMs > 0 && car.SpeedMs < car.Handling.TopSpeedMs * LaunchBelowShare) return TyreWork.Launch;
+        if (car.WheelspinShare > 0 && car.SpeedMs > 0) return TyreWork.Launch;   // WI-030: the rear tyres spinning (Handling.WheelspinBelowShare)
         return null;
     }
 

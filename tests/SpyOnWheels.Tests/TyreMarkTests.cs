@@ -43,7 +43,7 @@ public class TyreMarkTests
         Assert.True(marks.Count > 0);
         // The car drives north (y down the screen is south): every mark lies behind where the car started its last metre,
         // and from the rear wheels, which are behind its centre at each moment: none ahead of the launch's end.
-        float launchEnd = -(float)(Car.TopSpeedMs * TyreMarks.LaunchBelowShare * Car.TopSpeedMs * TyreMarks.LaunchBelowShare / (2 * Car.AccelerationMs2) * Ppm);
+        float launchEnd = -(float)(Car.TopSpeedMs * Handling.SportsCar.WheelspinBelowShare * Car.TopSpeedMs * Handling.SportsCar.WheelspinBelowShare / (2 * Car.AccelerationMs2) * Ppm);
         Assert.All(marks.Marks, m => Assert.True(m.To.Y > launchEnd - 0.5f * Ppm));
         Assert.Equal(2, marks.Marks.GroupBy(m => m.Born).Max(g => g.Count()));   // two wheels lay a stroke each step
         // Short: the launch ends at 40 % of the top speed, well under 30 m.

@@ -79,6 +79,24 @@ public sealed class Car
     /// <summary>Metres per second sideways, to the right of the heading (WI-018): the slide. Zero when the tyres hold.</summary>
     public double SlipMs { get; private set; }
 
+    // ---- WI-030 a lively car (his ask: an aggressive V8 start that spins the tyres, and full brakes that make the car hard
+    // to hold at high speed; "an arcadish feeling comes before realism") ----
+
+    public const double PowerOversteerRadS2 = 16;  // steering while the rear spins swings the tail (and it keeps swinging a moment after)
+    public const double BrakeOversteerRadS2 = 4;   // steering while braking hard at top speed: up to ~0.8 rad/s more
+    public const double WheelspinGripLoss = 0.9;   // a full wheelspin takes the grip this far toward a shoved car's loose grip
+    public const double BrakeGripLoss = 0.5;       // and full brakes at the top speed this far
+
+    /// <summary>The player's car: its wheelspin and its light rear under braking change how it handles. Computer drivers
+    /// cannot catch a slide, so their cars are spared it (they still leave the marks).</summary>
+    public bool Lively { get; set; }
+
+    /// <summary>How hard the rear tyres spin this step, 0-1 (full throttle from a standstill: 1).</summary>
+    public double WheelspinShare { get; private set; }
+
+    /// <summary>How light the rear is under braking this step, 0-1 (full brakes at the top speed: 1).</summary>
+    public double BrakeShare { get; private set; }
+
     /// <summary>What the driver asked of the car on its last step (WI-021).</summary>
     public Drive LastDrive { get; private set; }
 
@@ -94,6 +112,8 @@ public sealed class Car
     {
         if (dt <= 0) return Vector2.Zero;
         LastDrive = drive;   // WI-021: what the driver asked, so the tyre marks can see the tyres working
+        WheelspinShare = 0;
+        BrakeShare = 0;
         if (Spinning) return AdvanceSpinning(dt);
         _lastSteer = drive.Steer;
         if (Airborne) return Velocity * (float)(_pxPerMetre * dt);   // WI-029: in the air nothing the driver does takes
@@ -108,6 +128,12 @@ public sealed class Car
         // WI-028: past its top only on speed a slope already gave it (on the level a slide must never carry it past its top).
         double most = Math.Max(Handling.TopSpeedMs, Math.Min(Velocity.Length(), Handling.TopSpeedMs * DownhillOverTop));
         double v = SpeedMs;
+        // WI-030: the rear tyres spin under full throttle from low speed (less the faster it goes); the brakes at speed
+        // lighten the rear (more the faster it goes).
+        double spinBelow = Handling.TopSpeedMs * Handling.WheelspinBelowShare;
+        if (drive.Throttle && v >= 0 && v < spinBelow) WheelspinShare = 1 - v / spinBelow;
+        if (drive.Brake && v > Handling.BrakeLooseFromMs)
+            BrakeShare = Math.Clamp((v - Handling.BrakeLooseFromMs) / Math.Max(1, Handling.TopSpeedMs - Handling.BrakeLooseFromMs), 0, 1);
         if (drive.Throttle) v = v < 0 ? Math.Min(0, v + Handling.BrakeMs2 * dt) : v >= Handling.TopSpeedMs ? v : Math.Min(Handling.TopSpeedMs, v + Handling.AccelerationMs2 * dt);
         else if (drive.Brake) v = v > 0 ? Math.Max(0, v - Handling.BrakeMs2 * dt) : Math.Max(-ReverseSpeedMs, v - Handling.AccelerationMs2 * 0.5 * dt);
         else v = v > 0 ? Math.Max(0, v - RollDragMs2 * dt) : Math.Min(0, v + RollDragMs2 * dt);
@@ -125,6 +151,16 @@ public sealed class Car
 
         // The tyres: pull the slide back toward the nose, up to the grip; most of what they take becomes forward speed.
         double grip = (drive.Throttle && steering ? Handling.GripPowerMs2 : Handling.GripMs2) * Ground.Grip * dt;
+        if (Lively)
+        {
+            // WI-030: a spinning or light rear lets go: steering then swings the tail out (the nose turns further than
+            // asked) and the tyres hold the slide less. Steering the other way catches it.
+            double toLoose = 1 - (1 - WheelspinGripLoss * WheelspinShare) * (1 - BrakeGripLoss * BrakeShare);
+            grip += (LooseGripMs2 * dt - grip) * toLoose;
+            if (steering)
+                YawRadS += Math.Clamp(drive.Steer, -1f, 1f) * Math.Sign(v) * dt
+                    * (WheelspinShare * PowerOversteerRadS2 * Math.Min(1.0, speed / TurnFullFromMs) + BrakeShare * BrakeOversteerRadS2);
+        }
         if (Loose) grip = LooseGripMs2 * dt;
         double take = Math.Min(Math.Abs(SlipMs), grip);
         SlipMs -= Math.Sign(SlipMs) * take;

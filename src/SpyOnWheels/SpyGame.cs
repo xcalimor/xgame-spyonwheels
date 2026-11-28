@@ -54,6 +54,8 @@ public sealed class SpyGame : Game
     }
     /// <summary>WI-021: the rubber the cars leave on the paving.</summary>
     private readonly TyreMarks _marks = new();
+    /// <summary>WI-030: the arrows (or a phone's stick) turn the wheel over a moment, not at once.</summary>
+    private readonly SteerInput _steer = new();
     private readonly Dictionary<int, List<TyreMark>> _marksByHeight = new();
     private const float MarkHeightStepPx = 4;   // marks within this of each other in height share one sprite pass
     /// <summary>WI-017: the camera zooms out with speed.</summary>
@@ -103,7 +105,7 @@ public sealed class SpyGame : Game
         if (_logic is not null) _view.Moving.UnionWith(_logic.Moving);
         var (at, heading) = _logic?.Hero is { } hero ? hero.Pose : StartOf(stage.World, _view.RoadScene);
         _start = at;
-        _car = new Car(at, heading, stage.World.Project.EffectivePxPerMetre, _logic?.Hero?.Handling);   // WI-022: the Hero's car type
+        _car = new Car(at, heading, stage.World.Project.EffectivePxPerMetre, _logic?.Hero?.Handling) { Lively = true };   // WI-022: the Hero's car type; WI-030 lively
         // WI-016: the world as the car feels it, the car's box, and the start it sinks back to.
         _drive = new DriveWorld(stage.World, _view.RoadScene, _view.Placed, _view.PictureSize, _view.Moving);
         _body = _logic?.Hero?.Body ?? BodyOf(stage.World, HeroAssetName, _carSprite?.Rect);
@@ -162,6 +164,8 @@ public sealed class SpyGame : Game
         _chase.UseTrains(Train.On(_view.Stage.World, _view.RoadScene, _view.HeightPxAt));   // WI-027
         if (_trafficOn && _trips is { Empty: false }) _chase.UseTraffic(_trips, Traffic.Cars, _options.Shots is not null ? _trafficSeed : Environment.TickCount);
         _car = _chase.Player;
+        _car.Lively = true;   // WI-030: the player's car spins its tyres and squirms under the brakes
+        _steer.Reset();
         _startPose = _chase.PlayerStart;
         _start = _chase.PlayerStart.At;
     }
@@ -224,7 +228,7 @@ public sealed class SpyGame : Game
         var drive = _options.Shots is not null
             ? new Drive(Throttle: true, Brake: false, Steer: 0f)   // the scripted drive: flat out along the first road
             : new Drive(keys.IsKeyDown(Keys.Up), keys.IsKeyDown(Keys.Down),
-                (keys.IsKeyDown(Keys.Right) ? 1f : 0f) - (keys.IsKeyDown(Keys.Left) ? 1f : 0f));
+                _steer.Update((keys.IsKeyDown(Keys.Right) ? 1f : 0f) - (keys.IsKeyDown(Keys.Left) ? 1f : 0f), dt));   // WI-030: the wheel eases to the arrow
         if (_chase is not null)
         {
             // R (or Enter once it is over) starts the chase again: failure is fast to retry (vision §7).

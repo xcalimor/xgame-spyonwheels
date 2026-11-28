@@ -18,7 +18,9 @@ public sealed record Handling(
     double TurnSlowRad,
     double TurnFastRad,
     double OffRoadDragScale,
-    double MassKg)
+    double MassKg,
+    double WheelspinBelowShare = 0.4,   // WI-030: full throttle below this share of the top speed spins the rear tyres
+    double BrakeLooseFromMs = 25)       // WI-030: braking faster than this (90 km/h) lightens the rear: steering then swings it
 {
     /// <summary>The Agent Car: the handling WI-016 to WI-020 tuned with him (Car's constants).</summary>
     public static readonly Handling SportsCar = new("sports car",
@@ -36,7 +38,9 @@ public sealed record Handling(
         TurnSlowRad: 2.1,
         TurnFastRad: 0.7,
         OffRoadDragScale: 0.58,    // flat out off the road: 9 / (0.444 x 0.58) ≈ 35 m/s (~126 km/h, 83 % of its top; WI-028 top 42)
-        MassKg: 2300);
+        MassKg: 2300,
+        WheelspinBelowShare: 0.25, // less power for its weight: a shorter spin
+        BrakeLooseFromMs: 22);     // softer and taller: it squirms from a bit lower
 
     /// <summary>The handling for a placed car, by its theme item id or its name ("pickup", "Pickup"); every other car is
     /// the sports car (decided by AI: the Vehicles theme holds two cars today).</summary>
